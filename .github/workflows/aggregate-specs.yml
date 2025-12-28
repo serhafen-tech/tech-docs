@@ -1,0 +1,72 @@
+name: Aggregate OpenAPI Specs
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to fetch specs from'
+        required: false
+        default: 'main'
+        type: string
+  repository_dispatch:
+    types: [aggregate-specs, spec-updated]
+
+permissions:
+  contents: write
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Run aggregation script
+        working-directory: scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Determine branch from workflow_dispatch input or repository_dispatch payload
+          BRANCH="${{ github.event.inputs.branch }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH="${{ github.event.client_payload.branch }}"
+          fi
+          if [ -z "$BRANCH" ]; then
+            BRANCH="main"
+          fi
+          
+          echo "Aggregating specs from branch: $BRANCH"
+          node aggregate-spec.js --branch "$BRANCH"
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code specs/ || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add specs/*.yaml
+          git commit -m "chore: update aggregated OpenAPI specs"
+          git push
+
+      - name: No changes detected
+        if: steps.git-check.outputs.changes != 'true'
+        run: echo "No changes in specs, skipping commit"
+

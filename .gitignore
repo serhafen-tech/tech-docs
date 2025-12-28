@@ -21,3 +21,6 @@ yarn-error.log*
 
 .idea
 .docusaurus
+
+scripts/yarn.lock
+scripts/node_modules

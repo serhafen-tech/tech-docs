@@ -45,13 +45,13 @@ const config: Config = {
             {
                 specs: [
                     {
-                        spec: 'specs/customs.openapi.yml',
+                        spec: 'specs/customs-api.openapi.yaml',
                         route: '/api/customs',
                     },
                     {
-                        spec: 'specs/lastmile.openapi.yml',
+                        spec: 'specs/lastmile-api.openapi.yaml',
                         route: '/api/lastmile',
-                    },
+                    }
                 ],
                 theme: {
                     primaryColor: '#1890ff',

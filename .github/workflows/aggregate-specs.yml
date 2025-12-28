@@ -38,7 +38,7 @@ jobs:
       - name: Run aggregation script
         working-directory: scripts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           # Determine branch from workflow_dispatch input or repository_dispatch payload
           BRANCH="${{ github.event.inputs.branch }}"

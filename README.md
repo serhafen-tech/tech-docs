@@ -9,6 +9,7 @@ This documentation site provides comprehensive API documentation for:
 
 - **Customs API**: Streamline customs clearance processes across Latin American borders
 - **Lastmile API**: Complete last-mile delivery and logistics management
+- **Cross Border Trade API**: Cross Border Trade services for e-commerce businesses
 
 Built with [Docusaurus](https://docusaurus.io/) and [Redocusaurus](https://github.com/rohit-gohri/redocusaurus) for
 OpenAPI documentation.
@@ -28,6 +29,7 @@ Currently available APIs:
 
 - **Customs API**: Available at `/api/customs` - Streamline customs clearance processes
 - **Lastmile API**: Available at `/api/lastmile` - Complete last-mile delivery and logistics
+- **Cross Border Trade API**: Available at `/api/cbt` - Cross Border Trade services for e-commerce businesses
 
 ### Beyond API Documentation
 

@@ -51,6 +51,10 @@ const config: Config = {
                     {
                         spec: 'specs/lastmile-api.openapi.yaml',
                         route: '/api/lastmile',
+                    },
+                    {
+                        spec: 'specs/cross-border-api.openapi.yaml',
+                        route: '/api/cbt',
                     }
                 ],
                 theme: {
@@ -85,6 +89,10 @@ const config: Config = {
                             to: '/api/lastmile',
                             label: 'Lastmile API',
                         },
+                        {
+                            to: '/api/cbt',
+                            label: 'Cross Border API',
+                        }
                     ],
                 },
             ],
@@ -103,6 +111,10 @@ const config: Config = {
                             label: 'Lastmile API',
                             to: '/api/lastmile',
                         },
+                        {
+                            label: 'Cross Border Trade API',
+                            to: '/api/cbt',
+                        }
                     ],
                 },
             ],

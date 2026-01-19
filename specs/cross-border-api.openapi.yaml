@@ -1,0 +1,236 @@
+openapi: 3.1.0
+info:
+  title: Cross-border API
+  version: 1.0.0
+  description: Public APIs for cross-border integration
+  contact:
+    name: Platform Support
+    email: platform-support@serhafen.com
+paths:
+  /v0/auth/m2m/token:
+    post:
+      summary: Machine-to-Machine authentication using client credentials
+      description: Obtains an access token for service-to-service authentication using client credentials grant
+      operationId: getM2MToken
+      parameters:
+        - name: traceParent
+          in: header
+          required: false
+          description: Unique trace identifier for distributed tracing.
+          schema:
+            type: string
+            pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2MTokenRequest'
+            examples:
+              m2m_example:
+                summary: Service account authentication
+                value:
+                  clientId: iam-service-admin
+                  clientSecret: iam-service-secret-2024
+      responses:
+        '200':
+          description: M2M token obtained successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2MTokenSuccessResponse'
+        '400':
+          description: Invalid request or missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+      tags:
+        - auth
+      servers:
+        - url: https://api.serhafen-staging.andinolabs.tech/iam-service
+          description: Staging server
+        - url: https://api.serhafen.andinolabs.tech/iam-service
+          description: Production server
+components:
+  schemas:
+    M2MTokenRequest:
+      type: object
+      required:
+        - clientId
+        - clientSecret
+      properties:
+        clientId:
+          type: string
+          description: Service account client ID
+          example: iam-service-admin
+        clientSecret:
+          type: string
+          description: Service account client secret
+          example: iam-service-secret-2024
+    M2MTokenSuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Service account token obtained successfully
+        data:
+          $ref: '#/components/schemas/M2MTokenData'
+    ValidationErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - details
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Request validation failed
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationErrorDetail'
+    UnauthorizedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Invalid credentials
+        error:
+          $ref: '#/components/schemas/UnauthorizedErrorData'
+    ServerErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: INTERNAL_SERVER_ERROR
+            message:
+              type: string
+              example: An unexpected error occurred
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationErrorDetail'
+    M2MTokenData:
+      type: object
+      required:
+        - accessToken
+        - type
+        - expiryTimeInMinutes
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token for service-to-service authentication.
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        type:
+          type: string
+          description: Type of the token.
+          example: Bearer
+        expiryTimeInMinutes:
+          type: integer
+          description: Expiration time of the access token in minutes.
+          example: 60
+    ValidationErrorDetail:
+      type: object
+      required:
+        - field
+        - error
+        - code
+      properties:
+        field:
+          type: string
+          description: Field name that failed validation
+          example: email
+        error:
+          type: string
+          description: Human-readable error message
+          example: Email must be a valid email address
+        code:
+          type: string
+          description: Machine-readable error code
+          example: INVALID_FORMAT
+    UnauthorizedErrorData:
+      type: object
+      properties:
+        code:
+          type: number
+          example: UNAUTHORIZED
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+    ErrorDetail:
+      type: object
+      required:
+        - field
+        - error
+        - code
+      properties:
+        field:
+          type: string
+          description: Field or system component that caused the error
+          example: keycloak
+        error:
+          type: string
+          description: Human-readable error message
+          example: Connection to Keycloak failed
+        code:
+          type: string
+          description: Machine-readable error code
+          example: CONNECTION_ERROR
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+  - name: auth
+    description: auth operations
+security: []

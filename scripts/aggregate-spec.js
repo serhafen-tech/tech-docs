@@ -9,6 +9,7 @@ const VENDOR_EXTENSIONS = {
     PUBLIC: 'x-public',
     AUDIENCE: 'x-audience',
     CATEGORY: 'x-category',
+    SERVERS: 'x-servers',
 };
 const OPENAPI_VERSION = '3.1.0';
 const GITHUB_API_ACCEPT_HEADER = 'application/vnd.github.v3+json';
@@ -38,40 +39,39 @@ const CONFIG = {
             name: 'customs-declaration',
             repo: 'serhafen-tech/customs-declaration',
             specsPath: 'specs',
+        },
+        {
+            name: 'cbt-docs',
+            repo: 'serhafen-tech/cbt-docs',
+            specsPath: 'specs',
+        },
+        {
+            name: 'iam',
+            repo: 'serhafen-tech/iam-service',
+            specsPath: 'specs',
         }
     ],
-    audiences: ['customs', 'lastmile'],
+    audiences: ['customs', 'lastmile', 'cross-border'],
     outputDir: '../specs',
     githubToken: process.env.GITHUB_TOKEN,
-    prefixSchemas: 'false',
-    prefixPaths: 'false',
+    prefixSchemas: false,
+    prefixPaths: false,
     branch: CLI_ARGS.branch, // branch to fetch from (can be overridden via CLI)
-    servers: {
-        customs: [
-            {
-                url: 'https://api.serhafen-tech.com/customs',
-                description: 'Production server',
-            },
-            {
-                url: 'https://api-staging.serhafen-tech.com/customs',
-                description: 'Staging server',
-            },
-        ],
-        lastmile: [
-            {
-                url: 'https://api.serhafen-tech.com/lastmile',
-                description: 'Production server',
-            },
-            {
-                url: 'https://api-staging.serhafen-tech.com/lastmile',
-                description: 'Staging server',
-            },
-        ],
-    },
+    // Default servers used as fallback if the service doesn't define any
+    defaultServers: [
+        {
+            url: 'https://api.serhafen-tech.com',
+            description: 'Production server',
+        },
+        {
+            url: 'https://api-staging.serhafen-tech.com',
+            description: 'Staging server',
+        },
+    ],
     tagOrder: [
         'Declarations',
         'Shipments',
-        'Tracking',
+        'Tracking'
     ],
 };
 
@@ -85,30 +85,20 @@ function validateConfig() {
     if (!CONFIG.audiences || CONFIG.audiences.length === 0) {
         throw new Error('At least one audience must be configured');
     }
+}
 
-    // Validate that each audience has server configuration
-    if (CONFIG.servers) {
-        CONFIG.audiences.forEach(audience => {
-            if (CONFIG.servers[audience] && !Array.isArray(CONFIG.servers[audience])) {
-                throw new Error(`Server configuration for '${audience}' must be an array`);
-            }
-            if (CONFIG.servers[audience] && CONFIG.servers[audience].length === 0) {
-                throw new Error(`Server configuration for '${audience}' cannot be empty`);
-            }
-        });
-    }
+function shouldPrefix(configValue) {
+    if (configValue === true) return true;
+    if (configValue === false) return false;
+    return CONFIG.services.length > 1;
 }
 
 function shouldPrefixSchemas() {
-    if (CONFIG.prefixSchemas === true) return true;
-    if (CONFIG.prefixSchemas === false) return false;
-    return CONFIG.services.length > 1;
+    return shouldPrefix(CONFIG.prefixSchemas);
 }
 
 function shouldPrefixPaths() {
-    if (CONFIG.prefixPaths === true) return true;
-    if (CONFIG.prefixPaths === false) return false;
-    return CONFIG.services.length > 1;
+    return shouldPrefix(CONFIG.prefixPaths);
 }
 
 function getGithubHeaders() {
@@ -251,15 +241,31 @@ async function fetchSpecsFromRepo(repo, specsPath, branch = CONFIG.branch) {
 
         const resolvedCache = new Map();
 
-        const specs = await Promise.all(
+        return await Promise.all(
             specFiles.map(file => fetchSpecFileContent(file, repo, specsPath, branch, resolvedCache))
         );
-
-        return specs;
     } catch (error) {
         console.error(`Error fetching specs from ${repo}:`, error.message);
         return [];
     }
+}
+
+function parseAudienceValue(audienceValue) {
+    if (!audienceValue) {
+        return [];
+    }
+
+    // Handle both string and array values for x-audience
+    let audiences = Array.isArray(audienceValue) ? audienceValue : [audienceValue];
+
+    // Handle comma-separated strings like "auth,cross-border"
+    audiences = audiences.flatMap(aud =>
+        typeof aud === 'string' && aud.includes(',')
+            ? aud.split(',').map(s => s.trim())
+            : aud
+    );
+
+    return audiences;
 }
 
 function shouldIncludeOperation(operation, audience) {
@@ -271,19 +277,13 @@ function shouldIncludeOperation(operation, audience) {
         return false;
     }
 
-    const audiences = operation[VENDOR_EXTENSIONS.AUDIENCE] || [];
-    return audiences.includes(audience);
+    const audienceValue = operation[VENDOR_EXTENSIONS.AUDIENCE];
+    const audiences = parseAudienceValue(audienceValue);
+
+    return audiences.length > 0 && audiences.includes(audience);
 }
 
 function createBaseSpec(audience) {
-    // Get servers for this audience, or use a default if not configured
-    const servers = CONFIG.servers?.[audience] || [
-        {
-            url: `https://api.serhafen-tech.com/${audience}`,
-            description: 'Production server',
-        },
-    ];
-
     return {
         openapi: OPENAPI_VERSION,
         info: {
@@ -295,7 +295,6 @@ function createBaseSpec(audience) {
                 email: 'platform-support@serhafen.com',
             },
         },
-        servers: servers,
         paths: {},
         components: {
             schemas: {},
@@ -325,6 +324,7 @@ function cleanOperation(operation) {
     delete cleaned[VENDOR_EXTENSIONS.AUDIENCE];
     delete cleaned[VENDOR_EXTENSIONS.CATEGORY];
     delete cleaned.tags;
+    delete cleaned.servers; // Remove any existing servers from the original operation
     return cleaned;
 }
 
@@ -336,12 +336,31 @@ function addCategoryTag(operation, category) {
     }
 }
 
-function sortTags(tags) {
-    const tagOrder = CONFIG.tagOrder || [];
+function addServersToOperation(cleanedOperation, originalOperation, specServers) {
+    // Check if the operation has custom x-servers defined (highest priority)
+    if (originalOperation[VENDOR_EXTENSIONS.SERVERS]) {
+        cleanedOperation.servers = originalOperation[VENDOR_EXTENSIONS.SERVERS];
+        return;
+    }
 
+    // Use servers from the original spec file (normal case)
+    if (specServers && specServers.length > 0) {
+        cleanedOperation.servers = specServers;
+    } else {
+        // Use default servers as fallback
+        cleanedOperation.servers = CONFIG.defaultServers;
+    }
+}
+
+function getTagOrderIndex(tagName) {
+    const tagOrder = CONFIG.tagOrder || [];
+    return tagOrder.indexOf(tagName);
+}
+
+function sortTags(tags) {
     return tags.sort((a, b) => {
-        const indexA = tagOrder.indexOf(a.name);
-        const indexB = tagOrder.indexOf(b.name);
+        const indexA = getTagOrderIndex(a.name);
+        const indexB = getTagOrderIndex(b.name);
 
         // Both tags are in the order list
         if (indexA !== -1 && indexB !== -1) {
@@ -381,10 +400,9 @@ function sortPaths(paths) {
     });
 
     // Sort paths within each tag group and combine
-    const tagOrder = CONFIG.tagOrder || [];
     const sortedTagNames = Object.keys(pathsByTag).sort((a, b) => {
-        const indexA = tagOrder.indexOf(a);
-        const indexB = tagOrder.indexOf(b);
+        const indexA = getTagOrderIndex(a);
+        const indexB = getTagOrderIndex(b);
 
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
@@ -405,7 +423,7 @@ function sortPaths(paths) {
     return sortedPaths;
 }
 
-function processOperation(operation, audience, serviceName, pathKey, method, aggregated, tagSet) {
+function processOperation(operation, audience, serviceName, pathKey, method, aggregated, tagSet, specServers) {
     if (!shouldIncludeOperation(operation, audience)) {
         return;
     }
@@ -433,10 +451,13 @@ function processOperation(operation, audience, serviceName, pathKey, method, agg
 
     addCategoryTag(cleanedOperation, category);
 
+    // Add servers to the operation from the original spec file
+    addServersToOperation(cleanedOperation, operation, specServers);
+
     aggregated.paths[prefixedPath][method] = cleanedOperation;
 }
 
-function processPaths(content, audience, serviceName, aggregated, tagSet) {
+function processPaths(content, audience, serviceName, aggregated, tagSet, specServers) {
     if (!content.paths) {
         console.log(`    ⚠ No paths found in spec`);
         return;
@@ -451,13 +472,14 @@ function processPaths(content, audience, serviceName, aggregated, tagSet) {
             const operation = pathItem[method];
             if (operation) {
                 if (shouldIncludeOperation(operation, audience)) {
-                    processOperation(operation, audience, serviceName, pathKey, method, aggregated, tagSet);
+                    processOperation(operation, audience, serviceName, pathKey, method, aggregated, tagSet, specServers);
                     processedCount++;
                 } else {
                     skippedCount++;
                     const isPublic = operation[VENDOR_EXTENSIONS.PUBLIC] === true;
-                    const audiences = operation[VENDOR_EXTENSIONS.AUDIENCE] || [];
-                    const hasAudience = audiences.includes(audience);
+                    const audienceValue = operation[VENDOR_EXTENSIONS.AUDIENCE];
+                    const audiences = parseAudienceValue(audienceValue);
+                    const hasAudience = audiences.length > 0 && audiences.includes(audience);
 
                     if (!isPublic) {
                         console.log(`    ⊘ Skipped ${method.toUpperCase()} ${pathKey}: not marked as public (x-public: true)`);
@@ -605,7 +627,10 @@ function removeUnusedSchemas(aggregated) {
 }
 
 function processSpec(content, serviceName, audience, aggregated, tagSet) {
-    processPaths(content, audience, serviceName, aggregated, tagSet);
+    // Extract servers from the original spec to use for all operations from this spec
+    const specServers = content.servers || [];
+
+    processPaths(content, audience, serviceName, aggregated, tagSet, specServers);
     mergeSchemas(content, serviceName, aggregated);
     mergeSecurity(content, aggregated);
 }
@@ -648,13 +673,25 @@ async function writeAggregatedSpec(audience, aggregatedSpec) {
     const outputPath = path.join(CONFIG.outputDir, `${audience}-api.openapi.yaml`);
     await fs.writeFile(outputPath, yaml.dump(aggregatedSpec, {lineWidth: -1}));
 
+    // Count unique servers across all operations
+    const uniqueServers = new Set();
+    for (const pathItem of Object.values(aggregatedSpec.paths)) {
+        for (const operation of Object.values(pathItem)) {
+            if (operation.servers) {
+                operation.servers.forEach(server => {
+                    uniqueServers.add(`${server.description}: ${server.url}`);
+                });
+            }
+        }
+    }
+
     console.log(`✓ Generated ${outputPath}`);
     console.log(`  - Paths: ${Object.keys(aggregatedSpec.paths).length}`);
     console.log(`  - Schemas: ${Object.keys(aggregatedSpec.components.schemas).length}`);
     console.log(`  - Tags: ${aggregatedSpec.tags.length}`);
-    console.log(`  - Servers: ${aggregatedSpec.servers.length}`);
-    aggregatedSpec.servers.forEach(server => {
-        console.log(`    • ${server.description}: ${server.url}`);
+    console.log(`  - Unique servers across operations: ${uniqueServers.size}`);
+    [...uniqueServers].sort().forEach(serverInfo => {
+        console.log(`    • ${serverInfo}`);
     });
 }
 

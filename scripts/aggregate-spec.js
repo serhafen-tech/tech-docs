@@ -299,6 +299,9 @@ function createBaseSpec(audience) {
         components: {
             schemas: {},
             securitySchemes: {},
+            responses: {},
+            requestBodies: {},
+            parameters: {},
         },
         tags: [],
         security: [],
@@ -324,7 +327,7 @@ function cleanOperation(operation) {
     delete cleaned[VENDOR_EXTENSIONS.AUDIENCE];
     delete cleaned[VENDOR_EXTENSIONS.CATEGORY];
     delete cleaned.tags;
-    delete cleaned.servers; // Remove any existing servers from the original operation
+    delete cleaned.servers;
     return cleaned;
 }
 
@@ -568,6 +571,78 @@ function mergeSchemas(content, serviceName, aggregated) {
     }
 }
 
+function mergeResponses(content, serviceName, aggregated) {
+    if (!content.components?.responses) {
+        return;
+    }
+
+    const usePrefixing = shouldPrefixSchemas();
+
+    const updatedResponses = {};
+    Object.entries(content.components.responses).forEach(([responseName, response]) => {
+        updatedResponses[responseName] = usePrefixing
+            ? updateSchemaReferences(response, serviceName)
+            : response;
+    });
+
+    if (usePrefixing) {
+        Object.entries(updatedResponses).forEach(([responseName, response]) => {
+            const prefixedResponseName = `${serviceName}_${responseName}`;
+            aggregated.components.responses[prefixedResponseName] = response;
+        });
+    } else {
+        Object.assign(aggregated.components.responses, updatedResponses);
+    }
+}
+
+function mergeRequestBodies(content, serviceName, aggregated) {
+    if (!content.components?.requestBodies) {
+        return;
+    }
+
+    const usePrefixing = shouldPrefixSchemas();
+
+    const updatedRequestBodies = {};
+    Object.entries(content.components.requestBodies).forEach(([requestBodyName, requestBody]) => {
+        updatedRequestBodies[requestBodyName] = usePrefixing
+            ? updateSchemaReferences(requestBody, serviceName)
+            : requestBody;
+    });
+
+    if (usePrefixing) {
+        Object.entries(updatedRequestBodies).forEach(([requestBodyName, requestBody]) => {
+            const prefixedRequestBodyName = `${serviceName}_${requestBodyName}`;
+            aggregated.components.requestBodies[prefixedRequestBodyName] = requestBody;
+        });
+    } else {
+        Object.assign(aggregated.components.requestBodies, updatedRequestBodies);
+    }
+}
+
+function mergeParameters(content, serviceName, aggregated) {
+    if (!content.components?.parameters) {
+        return;
+    }
+
+    const usePrefixing = shouldPrefixSchemas();
+
+    const updatedParameters = {};
+    Object.entries(content.components.parameters).forEach(([parameterName, parameter]) => {
+        updatedParameters[parameterName] = usePrefixing
+            ? updateSchemaReferences(parameter, serviceName)
+            : parameter;
+    });
+
+    if (usePrefixing) {
+        Object.entries(updatedParameters).forEach(([parameterName, parameter]) => {
+            const prefixedParameterName = `${serviceName}_${parameterName}`;
+            aggregated.components.parameters[prefixedParameterName] = parameter;
+        });
+    } else {
+        Object.assign(aggregated.components.parameters, updatedParameters);
+    }
+}
+
 function mergeSecurity(content, aggregated) {
     if (content.components?.securitySchemes) {
         Object.assign(
@@ -588,6 +663,18 @@ function removeUnusedSchemas(aggregated) {
 
     if (aggregated.components?.securitySchemes) {
         collectReferencedSchemas(aggregated.components.securitySchemes, referencedSchemas);
+    }
+
+    if (aggregated.components?.responses) {
+        collectReferencedSchemas(aggregated.components.responses, referencedSchemas);
+    }
+
+    if (aggregated.components?.requestBodies) {
+        collectReferencedSchemas(aggregated.components.requestBodies, referencedSchemas);
+    }
+
+    if (aggregated.components?.parameters) {
+        collectReferencedSchemas(aggregated.components.parameters, referencedSchemas);
     }
 
     const allSchemas = aggregated.components.schemas;
@@ -632,6 +719,9 @@ function processSpec(content, serviceName, audience, aggregated, tagSet) {
 
     processPaths(content, audience, serviceName, aggregated, tagSet, specServers);
     mergeSchemas(content, serviceName, aggregated);
+    mergeResponses(content, serviceName, aggregated);
+    mergeRequestBodies(content, serviceName, aggregated);
+    mergeParameters(content, serviceName, aggregated);
     mergeSecurity(content, aggregated);
 }
 
@@ -671,7 +761,10 @@ async function fetchAllServiceSpecs() {
 
 async function writeAggregatedSpec(audience, aggregatedSpec) {
     const outputPath = path.join(CONFIG.outputDir, `${audience}-api.openapi.yaml`);
-    await fs.writeFile(outputPath, yaml.dump(aggregatedSpec, {lineWidth: -1}));
+    await fs.writeFile(outputPath, yaml.dump(aggregatedSpec, {
+        lineWidth: -1,
+        noRefs: true
+    }));
 
     // Count unique servers across all operations
     const uniqueServers = new Set();
@@ -688,6 +781,9 @@ async function writeAggregatedSpec(audience, aggregatedSpec) {
     console.log(`✓ Generated ${outputPath}`);
     console.log(`  - Paths: ${Object.keys(aggregatedSpec.paths).length}`);
     console.log(`  - Schemas: ${Object.keys(aggregatedSpec.components.schemas).length}`);
+    console.log(`  - Responses: ${Object.keys(aggregatedSpec.components.responses || {}).length}`);
+    console.log(`  - Request Bodies: ${Object.keys(aggregatedSpec.components.requestBodies || {}).length}`);
+    console.log(`  - Parameters: ${Object.keys(aggregatedSpec.components.parameters || {}).length}`);
     console.log(`  - Tags: ${aggregatedSpec.tags.length}`);
     console.log(`  - Unique servers across operations: ${uniqueServers.size}`);
     [...uniqueServers].sort().forEach(serverInfo => {

@@ -59,11 +59,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/ServerErrorResponse'
       tags:
-        - auth
+        - Auth
       servers:
-        - url: https://api.serhafen-staging.andinolabs.tech/iam-service
+        - url: https://api.serhafen-staging.andinolabs.tech/iam
           description: Staging server
-        - url: https://api.serhafen.andinolabs.tech/iam-service
+        - url: https://api.serhafen.andinolabs.tech/iam
+          description: Production server
+  /v0/notifications:
+    post:
+      summary: Send notification to Seller.
+      description: Endpoint to send notification to the Seller.
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/TraceParent'
+      requestBody:
+        $ref: '#/components/requestBodies/NotificationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationSuccess'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+        - CRM
+      servers:
+        - url: https://api.serhafen-staging.andinolabs.tech/fcc
+          description: Staging server
+        - url: https://api.serhafen.andinolabs.tech/fcc
           description: Production server
 components:
   schemas:
@@ -158,6 +184,70 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/ValidationErrorDetail'
+    NotificationSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+          enum:
+            - 200
+            - 400
+            - 401
+            - 500
+        response:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Notification sent successfully.
+            type:
+              type: string
+              example: SUCCESS
+            success:
+              type: array
+              items:
+                $ref: '#/components/schemas/NotificationSuccessItem'
+            failures:
+              type: array
+              items:
+                $ref: '#/components/schemas/NotificationFailureItem'
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+    NotificationRequestBody:
+      type: object
+      required:
+        - channelInfo
+        - stencilId
+        - channelDataModel
+        - meta
+      properties:
+        contextId:
+          type: string
+          description: Unique identifier for the request context.
+        stencilId:
+          type: string
+          description: Identifier for the notification stencil/template.
+          enum:
+            - LOGIN_OTP
+        channelInfo:
+          $ref: '#/components/schemas/ChannelInfo'
+        channelDataModel:
+          type: object
+          example:
+            otp: '123456'
+            time: 10 minutes
+        meta:
+          $ref: '#/components/schemas/NotificationMeta'
     M2MTokenData:
       type: object
       required:
@@ -206,6 +296,81 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ErrorDetail'
+    NotificationSuccessItem:
+      type: object
+      properties:
+        notificationId:
+          type: string
+          example: notif_1234567890
+        values:
+          type: array
+          items:
+            type: string
+          description: Addresses that succeeded.
+    NotificationFailureItem:
+      type: object
+      properties:
+        errorType:
+          type: string
+          example: invalid_recipient
+        values:
+          type: array
+          items:
+            type: string
+          description: Addresses that failed.
+    ErrorObject:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - VALIDATION_ERROR
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - CONFLICT
+            - INTERNAL_SERVER_ERROR
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+    ChannelInfo:
+      type: object
+      required:
+        - type
+        - from
+        - to
+      properties:
+        type:
+          type: string
+          enum:
+            - EMAIL
+            - TEXT
+            - WHATSAPP
+        to:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
+        from:
+          $ref: '#/components/schemas/Recipient'
+    NotificationMeta:
+      type: object
+      required:
+        - otpGeneratedTime
+        - userRequestTime
+      properties:
+        otpGeneratedTime:
+          type: integer
+          example: 1633024800
+        userRequestTime:
+          type: integer
+          example: 1633024860
     ErrorDetail:
       type: object
       required:
@@ -225,12 +390,85 @@ components:
           type: string
           description: Machine-readable error code
           example: CONNECTION_ERROR
+    Recipient:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the recipient.
+          example: John Doe
+        address:
+          type: string
+          description: Contact address - email, phone number, or WhatsApp number depending on channel type.
+          example: john.doe@example.com
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  responses:
+    NotificationSuccess:
+      description: Notification sent successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationSuccessResponse'
+    ValidationError:
+      description: Invalid request or missing parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Invalid client credentials.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  requestBodies:
+    NotificationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationRequestBody'
+  parameters:
+    Authorization:
+      name: Authorization
+      in: header
+      required: true
+      description: Bearer token for authentication.
+      schema:
+        type: string
+        pattern: ^Bearer\s[a-zA-Z0-9\-._~+/]+=*$
+        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    ContentType:
+      name: Content-Type
+      in: header
+      required: true
+      description: Content type of the request body.
+      schema:
+        type: string
+        enum:
+          - application/json
+    TraceParent:
+      name: traceparent
+      in: header
+      required: true
+      description: Traceparent header for distributed tracing.
+      schema:
+        type: string
+        pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
 tags:
-  - name: auth
-    description: auth operations
+  - name: Auth
+    description: Auth operations
+  - name: CRM
+    description: CRM operations
 security: []

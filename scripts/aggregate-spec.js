@@ -52,6 +52,20 @@ const CONFIG = {
         }
     ],
     audiences: ['customs', 'lastmile', 'cross-border'],
+    audienceDescriptions: {
+        'customs': 'Public APIs for customs integration',
+        'lastmile': 'Public APIs for lastmile integration',
+        'cross-border': `Public APIs for cross-border integration
+
+**Flexible Property Naming:** This API supports both camelCase and snake_case for property names in requests and responses. 
+You can send request parameters in either format (e.g., \`contextId\` or \`context_id\`).
+
+To explicitly specify your preferred response format, include the \`X-Case-Style\` header:
+- \`X-Case-Style: camel\` - Returns properties in camelCase (default)
+- \`X-Case-Style: snake\` - Returns properties in snake_case
+
+If not specified, the API will respond in camelCase by default.`,
+    },
     outputDir: '../specs',
     githubToken: process.env.GITHUB_TOKEN,
     prefixSchemas: false,
@@ -284,12 +298,16 @@ function shouldIncludeOperation(operation, audience) {
 }
 
 function createBaseSpec(audience) {
+    // Get custom description for this audience, or use default
+    const description = CONFIG.audienceDescriptions?.[audience]
+        || `Public APIs for ${audience} integration`;
+
     return {
         openapi: OPENAPI_VERSION,
         info: {
             title: `${audience.charAt(0).toUpperCase() + audience.slice(1)} API`,
             version: '1.0.0',
-            description: `Public APIs for ${audience} integration`,
+            description: description,
             contact: {
                 name: 'Platform Support',
                 email: 'platform-support@serhafen.com',

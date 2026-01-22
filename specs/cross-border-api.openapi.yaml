@@ -102,6 +102,33 @@ paths:
           description: Staging server
         - url: https://api.serhafen.andinolabs.tech/fcc
           description: Production server
+  /v0/orders/snapshots:
+    post:
+      summary: Create an order snapshot.
+      description: Endpoint to create a snapshot of an order.
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/TraceParent'
+        - $ref: '#/components/parameters/CaseStyle'
+      requestBody:
+        $ref: '#/components/requestBodies/OrderSnapshotRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/OrderSnapshotAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+        - Orders
+      servers:
+        - url: https://api.serhafen-staging.andinolabs.tech/fcc
+          description: Staging server
+        - url: https://api.serhafen.andinolabs.tech/fcc
+          description: Production server
 components:
   schemas:
     M2MTokenRequest:
@@ -242,6 +269,25 @@ components:
           example: false
         error:
           $ref: '#/components/schemas/ErrorObject'
+    OrderSnapshotAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the order snapshot request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
     NotificationRequestBody:
       type: object
       required:
@@ -267,6 +313,50 @@ components:
             time: 10 minutes
         meta:
           $ref: '#/components/schemas/NotificationMeta'
+    OrderSnapshotRequestBody:
+      type: object
+      properties:
+        eventDateTime:
+          type: integer
+          description: Unix timestamp of the event
+          examples:
+            - 1701369600
+        orderId:
+          type: string
+          description: Unique identifier for the order. Identifier provided by Serhafen.
+          examples:
+            - ORD123456789
+        version:
+          type: integer
+          description: Version of the order snapshot, will help us to avoid processing older snapshots.
+          examples:
+            - 1
+        previousVersion:
+          type: integer
+          description: Previous version of the order snapshot, which will help us to identify missing version (trigger an alert).
+          examples:
+            - 0
+        orderItems:
+          type: array
+          description: List of items included in the order
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        choreRequests:
+          type: array
+          description: List of chore requests associated with the order (cancellations, returns, etc.)
+          items:
+            $ref: '#/components/schemas/ChoreRequest'
+        remarks:
+          type: string
+          description: Additional remarks or notes about the order
+      required:
+        - eventDateTime
+        - orderId
+        - version
+        - previousVersion
+        - orderItems
+        - choreRequests
+        - remarks
     M2MTokenData:
       type: object
       required:
@@ -390,6 +480,49 @@ components:
         userRequestTime:
           type: integer
           example: 1633024860
+    OrderItem:
+      type: object
+      properties:
+        orderItemId:
+          type: string
+          description: Unique identifier for the order item. Identifier provided by Serhafen, Seller order line item
+        status:
+          type: array
+          description: List of status entries for this order item, tracking its progression through the fulfillment process
+          items:
+            $ref: '#/components/schemas/ItemStatus'
+      required:
+        - orderItemId
+        - status
+    ChoreRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of chore request being made
+          enum:
+            - CANCEL
+            - RETURN_COMPLETE_NOTIFY
+        choreRequestId:
+          type: string
+          description: Unique identifier of the request
+        flowType:
+          type: string
+          description: Origin of the chore request (customer-initiated or seller-initiated)
+          enum:
+            - CUSTOMER_CANCEL
+            - CUSTOMER_RETURN
+            - SELLER_CANCEL
+        orderItems:
+          type: array
+          description: List of order items affected by this chore request
+          items:
+            $ref: '#/components/schemas/OrderItem'
+      required:
+        - type
+        - choreRequestId
+        - flowType
+        - orderItems
     ErrorDetail:
       type: object
       required:
@@ -420,6 +553,35 @@ components:
           type: string
           description: Contact address - email, phone number, or WhatsApp number depending on channel type.
           example: john.doe@example.com
+    ItemStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Current status of the order item in the fulfillment lifecycle
+          enum:
+            - APPROVED
+            - RESERVED
+            - READY_TO_SHIP
+            - SHIPPED
+            - OUT_FOR_DELIVERY
+            - DELIVERED
+            - CANCELLED
+        quantity:
+          type: integer
+          description: Number of items in this status
+          minimum: 1
+          examples:
+            - 2
+            - 4
+        trackingId:
+          type: string
+          description: Tracking identifier for shipment
+          examples:
+            - SH00123456789
+      required:
+        - status
+        - quantity
   securitySchemes:
     bearerAuth:
       type: http
@@ -450,6 +612,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    OrderSnapshotAccepted:
+      description: Order snapshot accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
   requestBodies:
     NotificationRequest:
       required: true
@@ -457,6 +625,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/NotificationRequestBody'
+    OrderSnapshotRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderSnapshotRequestBody'
   parameters:
     Authorization:
       name: Authorization
@@ -496,10 +670,14 @@ components:
           - camel
           - snake
         default: camel
-        example: camel
+        examples:
+          - camel
+          - snake
 tags:
   - name: Auth
     description: Auth operations
   - name: CRM
     description: CRM operations
+  - name: Orders
+    description: Orders operations
 security: []

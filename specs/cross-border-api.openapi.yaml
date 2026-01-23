@@ -75,6 +75,33 @@ paths:
           description: Staging server
         - url: https://api.serhafen.andinolabs.tech/iam
           description: Production server
+  /v0/waybills:
+    post:
+      summary: Generate a waybill for shipment.
+      description: Endpoint to generate a waybill for shipment.
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/TraceParent'
+        - $ref: '#/components/parameters/CaseStyle'
+      requestBody:
+        $ref: '#/components/requestBodies/WaybillRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/WaybillAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+        - Shipments
+      servers:
+        - url: https://api.serhafen-staging.andinolabs.tech/fcc
+          description: Staging server
+        - url: https://api.serhafen.andinolabs.tech/fcc
+          description: Production server
   /v0/notifications:
     post:
       summary: Send notification to Seller.
@@ -288,6 +315,25 @@ components:
           examples:
             - REQ0001
             - REQ0002
+    WaybillAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the waybill request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
     NotificationRequestBody:
       type: object
       required:
@@ -357,6 +403,28 @@ components:
         - orderItems
         - choreRequests
         - remarks
+    WaybillRequestBody:
+      type: object
+      properties:
+        shipmentId:
+          type: string
+          description: Unique identifier for the shipment
+          examples:
+            - SHIP123456789
+        senderDetails:
+          $ref: '#/components/schemas/SenderDetails'
+        receiverDetails:
+          $ref: '#/components/schemas/ReceiverDetails'
+        orderDetails:
+          $ref: '#/components/schemas/OrderDetails'
+        parcelDetails:
+          $ref: '#/components/schemas/ParcelDetails'
+      required:
+        - shipmentId
+        - senderDetails
+        - receiverDetails
+        - orderDetails
+        - parcelDetails
     M2MTokenData:
       type: object
       required:
@@ -523,6 +591,90 @@ components:
         - choreRequestId
         - flowType
         - orderItems
+    SenderDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the sender
+          examples:
+            - SENDER001
+        locationId:
+          type: string
+          description: Location identifier for the sender's address
+          examples:
+            - LOC001
+        collectionDetails:
+          $ref: '#/components/schemas/CollectionDetails'
+      required:
+        - id
+        - locationId
+        - collectionDetails
+    ReceiverDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the receiver
+          examples:
+            - RECEIVER001
+        locationId:
+          type: string
+          description: Location identifier for the receiver's address
+          examples:
+            - LOC002
+      required:
+        - id
+        - locationId
+    OrderDetails:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Unique identifier for the order associated with this shipment
+          examples:
+            - ORD123456789
+        items:
+          type: array
+          description: List of items included in the shipment
+          items:
+            $ref: '#/components/schemas/ShipmentItem'
+      required:
+        - orderId
+        - items
+    ParcelDetails:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          description: Total number of parcels in the shipment
+          minimum: 1
+          examples:
+            - 3
+        totalWeight:
+          type: number
+          description: Total weight of all parcels in kilograms
+          minimum: 0
+          examples:
+            - 15.5
+            - 22.3
+        totalVolume:
+          type: number
+          description: Total volume of all parcels in cubic meters
+          minimum: 0
+          examples:
+            - 0.5
+            - 1.2
+        parcels:
+          type: array
+          description: List of individual parcels in the shipment
+          items:
+            $ref: '#/components/schemas/Parcel'
+      required:
+        - quantity
+        - totalWeight
+        - totalVolume
+        - parcels
     ErrorDetail:
       type: object
       required:
@@ -582,6 +734,53 @@ components:
       required:
         - status
         - quantity
+    CollectionDetails:
+      type: object
+      properties:
+        collectionDate:
+          type: string
+          description: Date when the shipment will be collected (ISO 8601 format)
+          format: date
+          examples:
+            - '2026-01-23'
+      required:
+        - collectionDate
+    ShipmentItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+          description: Unique identifier for the item
+          examples:
+            - ITEM001
+        quantity:
+          type: integer
+          description: Number of units of this item in the shipment
+          minimum: 1
+          examples:
+            - 2
+            - 5
+      required:
+        - itemId
+        - quantity
+    Parcel:
+      type: object
+      properties:
+        parcelId:
+          type: string
+          description: Unique identifier for the individual parcel
+          examples:
+            - PARCEL001
+        parcelWeight:
+          type: number
+          description: Weight of this parcel in kilograms
+          minimum: 0
+          examples:
+            - 5.2
+            - 8.7
+      required:
+        - parcelId
+        - parcelWeight
   securitySchemes:
     bearerAuth:
       type: http
@@ -618,6 +817,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
+    WaybillAccepted:
+      description: Waybill accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaybillAcceptedResponse'
   requestBodies:
     NotificationRequest:
       required: true
@@ -631,6 +836,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotRequestBody'
+    WaybillRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaybillRequestBody'
   parameters:
     Authorization:
       name: Authorization
@@ -676,6 +887,8 @@ components:
 tags:
   - name: Auth
     description: Auth operations
+  - name: Shipments
+    description: Shipments operations
   - name: CRM
     description: CRM operations
   - name: Orders

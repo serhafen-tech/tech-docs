@@ -83,6 +83,7 @@ If not specified, the API will respond in camelCase by default.`,
         },
     ],
     tagOrder: [
+        'Auth',
         'Declarations',
         'Shipments',
         'Tracking'

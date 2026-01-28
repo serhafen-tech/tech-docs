@@ -545,9 +545,11 @@ components:
         otpGeneratedTime:
           type: integer
           example: 1633024800
+          format: long
         userRequestTime:
           type: integer
           example: 1633024860
+          format: long
     OrderItem:
       type: object
       properties:

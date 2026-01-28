@@ -257,7 +257,8 @@ components:
       properties:
         status:
           type: integer
-          example: 200
+          examples:
+            - 200
           enum:
             - 200
             - 400
@@ -273,10 +274,12 @@ components:
           properties:
             message:
               type: string
-              example: Notification sent successfully.
+              examples:
+                - Notification sent successfully.
             type:
               type: string
-              example: SUCCESS
+              examples:
+                - SUCCESS
             success:
               type: array
               items:
@@ -353,10 +356,12 @@ components:
         channelInfo:
           $ref: '#/components/schemas/ChannelInfo'
         channelDataModel:
-          type: object
-          example:
-            otp: '123456'
-            time: 10 minutes
+          oneOf:
+            - $ref: '#/components/schemas/EmailLoginOtpDataModel'
+          discriminator:
+            propertyName: stencilId
+            mapping:
+              LOGIN_OTP: '#/components/schemas/EmailLoginOtpDataModel'
         meta:
           $ref: '#/components/schemas/NotificationMeta'
     OrderSnapshotRequestBody:
@@ -478,7 +483,8 @@ components:
       properties:
         notificationId:
           type: string
-          example: notif_1234567890
+          examples:
+            - notif_1234567890
         values:
           type: array
           items:
@@ -489,7 +495,8 @@ components:
       properties:
         errorType:
           type: string
-          example: invalid_recipient
+          examples:
+            - invalid_recipient
         values:
           type: array
           items:
@@ -528,14 +535,29 @@ components:
           type: string
           enum:
             - EMAIL
-            - TEXT
-            - WHATSAPP
         to:
           type: array
           items:
             $ref: '#/components/schemas/Recipient'
         from:
           $ref: '#/components/schemas/Recipient'
+    EmailLoginOtpDataModel:
+      type: object
+      description: Data model for LOGIN_OTP stencil when using EMAIL channel.
+      required:
+        - otp
+        - time
+      properties:
+        otp:
+          type: string
+          description: One-time password to be sent.
+          examples:
+            - '123456'
+        time:
+          type: string
+          description: Time validity for the OTP.
+          examples:
+            - 10 minutes
     NotificationMeta:
       type: object
       required:
@@ -544,11 +566,13 @@ components:
       properties:
         otpGeneratedTime:
           type: integer
-          example: 1633024800
+          examples:
+            - 1633024800
           format: long
         userRequestTime:
           type: integer
-          example: 1633024860
+          examples:
+            - 1633024860
           format: long
     OrderItem:
       type: object
@@ -702,11 +726,13 @@ components:
         name:
           type: string
           description: Name of the recipient.
-          example: John Doe
+          examples:
+            - John Doe
         address:
           type: string
           description: Contact address - email, phone number, or WhatsApp number depending on channel type.
-          example: john.doe@example.com
+          examples:
+            - john.doe@example.com
     ItemStatus:
       type: object
       properties:

@@ -379,14 +379,9 @@ components:
             - ORD123456789
         version:
           type: integer
-          description: Version of the order snapshot, will help us to avoid processing older snapshots.
+          description: Version of the order snapshot, will help us to avoid processing older snapshots. If a snapshot with a lower version is received, it will be ignored. And if the version at system is not version - 1, we need to trigger an alert, and process the snapshot.
           examples:
             - 1
-        previousVersion:
-          type: integer
-          description: Previous version of the order snapshot, which will help us to identify missing version (trigger an alert).
-          examples:
-            - 0
         orderItems:
           type: array
           description: List of items included in the order
@@ -394,7 +389,7 @@ components:
             $ref: '#/components/schemas/OrderItem'
         choreRequests:
           type: array
-          description: List of chore requests associated with the order (cancellations, returns, etc.)
+          description: List of chore requests associated with the order (cancellations, returns, etc.). We need to consider empty array if choreRequests field does not exist in the request.
           items:
             $ref: '#/components/schemas/ChoreRequest'
         remarks:
@@ -404,7 +399,6 @@ components:
         - eventDateTime
         - orderId
         - version
-        - previousVersion
         - orderItems
         - choreRequests
         - remarks

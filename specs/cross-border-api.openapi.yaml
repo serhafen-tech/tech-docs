@@ -249,45 +249,25 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/ValidationErrorDetail'
-    NotificationSuccessResponse:
+    NotificationAcceptedResponse:
       type: object
       required:
         - status
-        - response
+        - requestId
       properties:
         status:
-          type: integer
-          examples:
-            - 200
+          type: string
+          description: Processing status of the order snapshot request
           enum:
-            - 200
-            - 400
-            - 401
-            - 500
-        response:
-          type: object
-          required:
-            - message
-            - type
-            - success
-            - failures
-          properties:
-            message:
-              type: string
-              examples:
-                - Notification sent successfully.
-            type:
-              type: string
-              examples:
-                - SUCCESS
-            success:
-              type: array
-              items:
-                $ref: '#/components/schemas/NotificationSuccessItem'
-            failures:
-              type: array
-              items:
-                $ref: '#/components/schemas/NotificationFailureItem'
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
     ErrorResponse:
       type: object
       required:
@@ -472,30 +452,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ErrorDetail'
-    NotificationSuccessItem:
-      type: object
-      properties:
-        notificationId:
-          type: string
-          examples:
-            - notif_1234567890
-        values:
-          type: array
-          items:
-            type: string
-          description: Addresses that succeeded.
-    NotificationFailureItem:
-      type: object
-      properties:
-        errorType:
-          type: string
-          examples:
-            - invalid_recipient
-        values:
-          type: array
-          items:
-            type: string
-          description: Addresses that failed.
     ErrorObject:
       type: object
       required:
@@ -624,8 +580,6 @@ components:
           description: Location identifier for the sender's address
           examples:
             - LOC001
-        collectionDetails:
-          $ref: '#/components/schemas/CollectionDetails'
       required:
         - id
         - locationId
@@ -756,17 +710,6 @@ components:
       required:
         - status
         - quantity
-    CollectionDetails:
-      type: object
-      properties:
-        collectionDate:
-          type: string
-          description: Date when the shipment will be collected (ISO 8601 format)
-          format: date
-          examples:
-            - '2026-01-23'
-      required:
-        - collectionDate
     ShipmentItem:
       type: object
       properties:
@@ -814,7 +757,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/NotificationSuccessResponse'
+            $ref: '#/components/schemas/NotificationAcceptedResponse'
     ValidationError:
       description: Invalid request or missing parameters.
       content:

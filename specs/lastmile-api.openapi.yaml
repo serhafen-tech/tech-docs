@@ -6,1410 +6,812 @@ info:
   contact:
     name: Platform Support
     email: platform-support@serhafen.com
+servers:
+  - url: https://api.serhafen-tech.com/lastmile
+    description: Production server
+  - url: https://api-staging.serhafen-tech.com/lastmile
+    description: Staging server
 paths:
-  /shipment:
-    post:
-      operationId: createShipment
-      summary: Create a new last-mile shipment
-      description: |
-        Create a new shipment with one or more packages for last-mile delivery.
-
-        **Process Flow:**
-        1. Shipment is created in the database with status `LM_SHIPMENT_INITIATED` (8000)
-        2. Message is sent to SQS queue for asynchronous processing
-        3. Partner shipment creation happens in the background
-        4. Response includes initial shipment details and package IDs
-
-        **Important Notes:**
-        - Partner tracking number is generated asynchronously
-        - Use the tracking endpoint to check for partner assignment
-        - Multiple packages can be included in a single shipment
-        - All packages must have the same destination country
-      requestBody:
-        required: true
-        description: Shipment creation request with package details
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateShipmentRequest'
-            examples:
-              singlePackagePeru:
-                summary: Single package to Peru (Dinet)
-                value:
-                  clientId: '01'
-                  destinationCountry: PE
-                  masterAwbNo: AWB-PE-20260209-001
-                  bigBagId: BB-PE-001
-                  shipFrom:
-                    region: Callao
-                    province: Callao
-                    comuna: Cercado
-                    locality: Av. Colonial, Warehouse 5
-                    zipCode: '07001'
-                    latitude: -12.0464
-                    longitude: -77.0428
-                  shipTo:
-                    region: Arequipa
-                    province: Arequipa
-                    comuna: Cercado
-                    locality: Calle Mercaderes 123
-                    zipCode: '04001'
-                  consigneeInfo:
-                    fullName: Juan Pérez
-                    email: juan.perez@example.com
-                    phone: '+51987654321'
-                    customerIdentifier: '12345678'
-                    customerIdentifierType: DNI
-                  packages:
-                    - trackingNumber: SH-PE-123456789
-                      clientTrackingNumber: AE-ORDER-001
-                      weight: 2.5
-                      weightUom: KG
-                      dimensions:
-                        length: 30
-                        lengthUom: cm
-                        width: 20
-                        widthUom: cm
-                        height: 15
-                        heightUom: cm
-                      contentDetails:
-                        - productDescription: Smartphone Case
-                          contentType: BOX
-                          productValue: 25
-                          productValueCurrency: USD
-                      logisticsOperator: DNT
-                  uniqueReferences:
-                    - key: order_id
-                      value: ORD-2026-12345
-                  eventOccurredAt: '2026-02-09T10:30:00Z'
-              multiPackageChile:
-                summary: Multiple packages to Chile (Enviame)
-                value:
-                  clientId: '02'
-                  destinationCountry: CL
-                  masterAwbNo: AWB-CL-20260209-002
-                  bigBagId: BB-CL-002
-                  shipFrom:
-                    region: Región Metropolitana
-                    province: Santiago
-                    comuna: Pudahuel
-                    locality: Av. Américo Vespucio 1500
-                    zipCode: '9020000'
-                  shipTo:
-                    region: Valparaíso
-                    province: Valparaíso
-                    comuna: Viña del Mar
-                    locality: Av. Libertad 250
-                    zipCode: '2520000'
-                  consigneeInfo:
-                    fullName: Ana Silva
-                    email: ana.silva@example.com
-                    phone: '+56912345678'
-                    customerIdentifier: 12.345.678-9
-                    customerIdentifierType: RUT
-                  packages:
-                    - trackingNumber: SH-CL-123456790
-                      weight: 0.5
-                      weightUom: KG
-                      dimensions:
-                        length: 20
-                        lengthUom: cm
-                        width: 15
-                        widthUom: cm
-                        height: 5
-                        heightUom: cm
-                      logisticsOperator: ENVIAME
-                    - trackingNumber: SH-CL-123456791
-                      weight: 0.8
-                      weightUom: KG
-                      dimensions:
-                        length: 25
-                        lengthUom: cm
-                        width: 20
-                        widthUom: cm
-                        height: 8
-                        heightUom: cm
-                      logisticsOperator: ENVIAME
-      responses:
-        '200':
-          description: Shipment created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShipmentResponse'
-              examples:
-                success:
-                  summary: Successful shipment creation
-                  value:
-                    shipmentId: 550e8400-e29b-41d4-a716-446655440000
-                    clientId: '01'
-                    destinationCountry: PE
-                    masterAwbNo: AWB-PE-20260209-001
-                    bigBagId: BB-PE-001
-                    createdAt: '2026-02-09T10:30:00Z'
-                    updatedAt: '2026-02-09T10:30:00Z'
-                    packages:
-                      - packageId: 660e8400-e29b-41d4-a716-446655440001
-                        trackingNumber: SH-PE-123456789
-                        clientTrackingNumber: AE-ORDER-001
-                        partnerTrackingNumber: null
-                        latestStatus: LM_SHIPMENT_INITIATED
-                        canonicalStatusCode: '8000'
-                        latestStatusOccurredAt: '2026-02-09T10:30:00Z'
-                        executorName: null
-                        partnerName: null
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      tags:
-        - Shipments
-      servers:
-        - url: https://api.serhafen-net.andinolabs.tech/last-mile
-          description: Production API
-        - url: https://tech.andinolabs.com/last-mile
-          description: Staging API
-        - url: /last-mile
-          description: Local/Development API
-    put:
-      operationId: updateShipment
-      summary: Update an existing shipment
-      description: |
-        Update a shipment to trigger partner-specific actions based on movement type.
-
-        **Movement Types:**
-
-        - `LM_SHIPMENT_CREATION`: Initial shipment creation (internal use)
-        - `LM_READY_FOR_PICKUP`: Package cleared customs, ready for carrier pickup
-        - `LM_DEPARTED_SH_PM_ZONE`: Package handed over to last-mile carrier
-        - `LM_SHIPMENT_CANCELLATION`: Cancel the shipment (if supported by partner)
-
-        **Important Notes:**
-        - Package must exist in the database (use tracking number from creation)
-        - Package must have an executor assigned (check status first)
-        - Updates are processed asynchronously for some partners
-        - Cancellation may not be supported by all partners
-      requestBody:
-        required: true
-        description: Shipment update request
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateShipmentRequest'
-            examples:
-              readyForPickup:
-                summary: Mark packages as ready for pickup
-                value:
-                  movementType: LM_READY_FOR_PICKUP
-                  clientId: '01'
-                  destinationCountry: PE
-                  shipFrom:
-                    region: Callao
-                    province: Callao
-                    comuna: Cercado
-                    locality: Av. Colonial, Warehouse 5
-                  shipTo:
-                    region: Arequipa
-                    province: Arequipa
-                    comuna: Cercado
-                    locality: Calle Mercaderes 123
-                  consigneeInfo:
-                    fullName: Juan Pérez
-                    email: juan.perez@example.com
-                    phone: '+51987654321'
-                  packages:
-                    - trackingNumber: SH-PE-123456789
-                      weight: 2.5
-                      weightUom: KG
-                      contentType: BOX
-                    - trackingNumber: SH-PE-123456790
-                      weight: 1.8
-                      weightUom: KG
-                      contentType: BOX
-                  eventOccurredAt: '2026-02-09T14:00:00Z'
-              handoverToCarrier:
-                summary: Mark as handed over to carrier
-                value:
-                  movementType: LM_DEPARTED_SH_PM_ZONE
-                  clientId: '01'
-                  destinationCountry: PE
-                  shipFrom:
-                    region: Callao
-                    province: Callao
-                    comuna: Cercado
-                    locality: Av. Colonial, Warehouse 5
-                  shipTo:
-                    region: Arequipa
-                    province: Arequipa
-                    comuna: Cercado
-                    locality: Calle Mercaderes 123
-                  consigneeInfo:
-                    fullName: Juan Pérez
-                    email: juan.perez@example.com
-                    phone: '+51987654321'
-                  packages:
-                    - trackingNumber: SH-PE-123456789
-                      weight: 2.5
-                      weightUom: KG
-                      contentType: BOX
-                  eventOccurredAt: '2026-02-09T16:00:00Z'
-              cancelShipment:
-                summary: Cancel shipment
-                value:
-                  movementType: LM_SHIPMENT_CANCELLATION
-                  clientId: '01'
-                  destinationCountry: PE
-                  shipFrom:
-                    region: Callao
-                    province: Callao
-                    comuna: Cercado
-                    locality: Av. Colonial, Warehouse 5
-                  shipTo:
-                    region: Arequipa
-                    province: Arequipa
-                    comuna: Cercado
-                    locality: Calle Mercaderes 123
-                  consigneeInfo:
-                    fullName: Juan Pérez
-                    email: juan.perez@example.com
-                    phone: '+51987654321'
-                  packages:
-                    - trackingNumber: SH-PE-123456789
-                      weight: 2.5
-                      weightUom: KG
-                      contentType: BOX
-                  eventOccurredAt: '2026-02-09T12:00:00Z'
-      responses:
-        '200':
-          description: Shipment updated successfully
-          content:
-            application/json:
-              schema:
-                type: string
-                example: Package update processed successfully!!
-        '400':
-          description: Bad request - packages not found or missing executor
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                packageNotFound:
-                  summary: Package not found
-                  value:
-                    statusCode: 400
-                    message: 'Packages not found: SH-PE-123456789'
-                    error: Bad Request
-                noExecutor:
-                  summary: Package not created at executor
-                  value:
-                    statusCode: 400
-                    message: 'Packages not created at executor end: SH-PE-123456789'
-                    error: Bad Request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      tags:
-        - Shipments
-      servers:
-        - url: https://api.serhafen-net.andinolabs.tech/last-mile
-          description: Production API
-        - url: https://tech.andinolabs.com/last-mile
-          description: Staging API
-        - url: /last-mile
-          description: Local/Development API
-  /package/{trackingNumber}:
-    get:
-      operationId: trackPackage
-      summary: Track a package by tracking number
-      description: |
-        Retrieve comprehensive tracking information for a specific package including:
-        - Current status and location
-        - Complete status history with timestamps
-        - Partner information and tracking number
-        - Delivery address details
-        - Custom references
-
-        **Status Stages:**
-        - `INITIATED`: Shipment created, awaiting processing
-        - `IN_TRANSIT`: Package in transit to destination
-        - `OUT_FOR_DELIVERY`: Package out for final delivery
-        - `DELIVERED`: Successfully delivered
-        - `EXCEPTION`: Delivery exception or issue
-        - `RETURNED`: Package returned to sender
-
-        **Important Notes:**
-        - Set `detailedExecInfo=true` to include raw executor status updates
-        - Status updates may have a 1-5 minute delay from actual events
-        - `isActive` flag indicates if shipment is still in transit
+  /v0/mawbs/{mawbId}:
+    patch:
+      summary: Update MAWB details
+      description: Updates an existing Master Air Waybill (MAWB) with the provided fields. Only the fields provided in the request will be updated.
+      operationId: updateMawbDetails
       parameters:
-        - name: trackingNumber
-          in: path
+        - name: x-business-unit
+          in: header
           required: true
-          description: Serhafen tracking number (e.g., SH-PE-123456789)
-          schema:
-            type: string
-            pattern: ^SH-[A-Z]{2}-[0-9]{9,}$
-            example: SH-PE-123456789
-        - name: clientId
-          in: query
-          required: true
-          description: Client identifier
-          schema:
-            $ref: '#/components/schemas/ClientId'
-        - name: destinationCountry
-          in: query
-          required: true
-          description: Destination country code (ISO 3166-1 alpha-2)
-          schema:
-            $ref: '#/components/schemas/CountryCode'
-        - name: detailedExecInfo
-          in: query
-          required: false
-          description: Include detailed executor status updates
+          description: Business unit identifier for multi-tenant routing and data segregation. This header is required for all API requests.
           schema:
             type: string
             enum:
-              - true
-              - false
-            default: false
-      responses:
-        '200':
-          description: Package tracking information retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PackageTrackingResponse'
-              examples:
-                inTransit:
-                  summary: Package in transit
-                  value:
-                    trackingNumber: SH-PE-123456789
-                    partnerName: Dinet
-                    partnerTrackingNumber: DNT-PE-789456123
-                    clientId: '01'
-                    destinationCountry: PE
-                    shipTo:
-                      province: Arequipa
-                      city: Arequipa
-                      district: Cercado
-                    uniqueReferences:
-                      - key: order_id
-                        value: ORD-2026-12345
-                    isActive: true
-                    lastUpdatedAt: '2026-02-09T16:45:00Z'
-                    status:
-                      - code: '8005'
-                        name: PARTNER_SHIPMENT_CREATED
-                        statusDate: '2026-02-09T10:30:00Z'
-                        location: Lima, Peru
-                        stage: INITIATED
-                      - code: '8015'
-                        name: CUSTOMS_CLEARED
-                        statusDate: '2026-02-09T14:00:00Z'
-                        location: Callao Customs, Peru
-                        stage: IN_TRANSIT
-                      - code: '100'
-                        name: OUT_FOR_DELIVERY
-                        statusDate: '2026-02-09T16:00:00Z'
-                        location: Arequipa Distribution Center
-                        stage: OUT_FOR_DELIVERY
-                delivered:
-                  summary: Package delivered
-                  value:
-                    trackingNumber: SH-CL-123456790
-                    partnerName: Enviame
-                    partnerTrackingNumber: ENV-CL-456789123
-                    clientId: '02'
-                    destinationCountry: CL
-                    shipTo:
-                      province: Valparaíso
-                      city: Viña del Mar
-                      district: Centro
-                    isActive: false
-                    lastUpdatedAt: '2026-02-08T18:30:00Z'
-                    status:
-                      - code: '8005'
-                        name: PARTNER_SHIPMENT_CREATED
-                        statusDate: '2026-02-07T09:00:00Z'
-                        location: Santiago, Chile
-                        stage: INITIATED
-                      - code: '100'
-                        name: OUT_FOR_DELIVERY
-                        statusDate: '2026-02-08T08:00:00Z'
-                        location: Viña del Mar, Chile
-                        stage: OUT_FOR_DELIVERY
-                      - code: '200'
-                        name: DELIVERED
-                        statusDate: '2026-02-08T18:30:00Z'
-                        location: Viña del Mar, Chile
-                        stage: DELIVERED
-                        recipientName: Ana Silva
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          description: Package not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                statusCode: 404
-                message: 'Package not found with tracking number: SH-PE-123456789'
-                error: Not Found
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      tags:
-        - Tracking
-      servers:
-        - url: https://api.serhafen-net.andinolabs.tech/last-mile
-          description: Production API
-        - url: https://tech.andinolabs.com/last-mile
-          description: Staging API
-        - url: /last-mile
-          description: Local/Development API
-  /asn:
-    post:
-      operationId: upsertAsn
-      summary: Submit Advance Shipment Notice
-      description: |
-        Submit advance shipment notice (ASN) data for cross-border e-commerce shipments.
-
-        Primarily used for AliExpress 4PL integration but supports other platforms.
-
-        **Process:**
-        1. ASN data is validated against required fields
-        2. Destination country is auto-detected from receiver address
-        3. ASN is stored and marked as "complete" or "incomplete"
-        4. Incomplete ASNs can be updated with additional data later
-        5. ASN data enriches shipment tracking and partner communication
-
-        **Required Fields:**
-        - `trackingNumber`: Unique tracking identifier
-        - `logisticsOrderCode`: Logistics order reference
-        - `bizType`: Business type (e.g., 'AE_4PL_ONLINE')
-        - `nextCPResCode`: Next checkpoint resource code
-        - `customs.declarePriceTotal`: Total declared price
-        - `sender`: Complete sender information
-        - `receiver.address.country`: Receiver country (if address provided)
-        - `parcel.IOSSNo`: IOSS registration number
-        - `parcel.goodsList`: List of goods
-        - `pickup`: Complete pickup location
-        - `returnParcel`: Return parcel information
-
-        **Note:** See `/specs/asn-api.yaml` for complete field documentation.
-      security:
-        - ApiKeyAuth: []
+              - serhafen
+        - name: x-country-code
+          in: header
+          required: true
+          description: ISO 3166-1 alpha-2 country code representing the country context for the request. Used for country-specific processing and routing.
+          schema:
+            type: string
+            enum:
+              - ag
+        - name: Authorization
+          in: header
+          required: true
+          description: Bearer token for authenticating API requests. The token must be included in the Authorization header.
+          schema:
+            type: string
+            example: Bearer <token>
+        - name: mawbId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+          description: MAWB UUID
+          example: 018f-1234-5678-9abc-def012345678
+        - name: mawbCreatedAt
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: MAWB creation timestamp (part of composite primary key)
+          example: '2024-01-15T08:00:00Z'
       requestBody:
         required: true
-        description: Complete ASN payload with required and optional fields
+        description: MAWB patch request. Only the provided fields will be updated. Fields not included in the request remain unchanged.
         content:
           application/json:
             schema:
-              type: object
-              description: See /specs/asn-api.yaml for complete schema
-              example:
-                trackingNumber: SH-PE-987654321
-                logisticsOrderCode: LP00123456789
-                bizType: AE_4PL_ONLINE
-                nextCPResCode: AE_PE_LIMA_DC
-                sender:
-                  imID: ae_seller_12345
-                  name: Global Electronics Store
-                  phone: '+8613800138000'
-                  email: store@globalelectronics.com
-                  address:
-                    country: China
-                    province: Guangdong
-                    city: Shenzhen
-                receiver:
-                  name: María González
-                  phone: '+51987654321'
-                  address:
-                    country: Peru
-                    province: Lima
-                    city: Lima
-                parcel:
-                  weight: 0.8
-                  IOSSNo: IM1234567890
-                  goodsList:
-                    - name: Smartphone Case
-                      quantity: 1
-                customs:
-                  declarePriceTotal: '15.00'
+              $ref: '#/components/schemas/UpdateMawbDetailsRequest'
+            examples:
+              basic_edit_mawb_request:
+                summary: Basic MAWB edit request
+                value:
+                  flightNumber: AR1132
+                  manifestNumber: MAN-001-1234569
+                  bigbagCount: 5
+                  totalPackagesDeclared: 8
+                  totalWeight: 1500
+                  totalWeightUOM: KG
+                  referenceNumber: REF-123456789
+                  mawbNumber: 125-87654321
+                  eta: '2024-01-20T14:30:00Z'
+                  etd: '2024-01-18T08:15:00Z'
       responses:
         '200':
-          description: ASN recorded successfully
+          description: MAWB updated successfully
           content:
             application/json:
               schema:
-                type: string
-                example: Successfully recorded ASN
+                $ref: '#/components/schemas/UpdateMawbDetailsResponse'
+              examples:
+                success:
+                  summary: Successful MAWB Update
+                  value:
+                    data:
+                      mawbId: 018f1234-5678-9abc-def0-123456789abc
+                      mawbNumber: 125-87654321
+                      status: UPDATED
+                      createdAt: '2024-01-15T10:30:00Z'
+                      updatedAt: '2024-01-20T15:45:00Z'
+                      manifestNumber: MAN-001-1234569
+                      flightNumber: AR1132
+                      bigbagCount: 5
+                      totalPackagesDeclared: 8
+                      totalWeight: 1500
+                      totalWeightUOM: KG
+                      referenceNumber: REF-123456789
+                      eta: '2024-01-20T14:30:00Z'
+                      etd: '2024-01-18T08:15:00Z'
+                    message: MAWB updated successfully
         '400':
-          description: Validation failed or missing required fields
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateMawbDetailsValidationErrorResponse'
+        '404':
+          description: MAWB not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateMawbDetailsNotFoundErrorResponse'
+        '409':
+          description: Business rule violation or version mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateMawbDetailsConflictErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateMawbDetailsServerErrorResponse'
+      tags:
+        - Shipments
+  /v0/mawbs/{mawbId}/hawbs:
+    get:
+      summary: List HAWBs under a MAWB
+      description: |
+        Returns a paginated list of HAWBs associated with a given MAWB.
+        Foreign key relationship: `mawbId` + `mawbCreatedAt`.
+      operationId: listHawbs
+      parameters:
+        - name: x-business-unit
+          in: header
+          required: true
+          description: Business unit identifier for multi-tenant routing and data segregation. This header is required for all API requests.
+          schema:
+            type: string
+            enum:
+              - serhafen
+        - name: x-country-code
+          in: header
+          required: true
+          description: ISO 3166-1 alpha-2 country code representing the country context for the request. Used for country-specific processing and routing.
+          schema:
+            type: string
+            enum:
+              - ag
+        - name: Authorization
+          in: header
+          required: true
+          description: Bearer token for authenticating API requests. The token must be included in the Authorization header.
+          schema:
+            type: string
+            example: Bearer <token>
+        - name: mawbId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: mawbCreatedAt
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: bigBagNumber
+          in: query
+          schema:
+            type: string
+        - name: consigneeIdentificationNumber
+          in: query
+          schema:
+            type: string
+        - name: consigneeName
+          in: query
+          schema:
+            type: string
+        - name: lastMileTrackingNumber
+          in: query
+          schema:
+            type: string
+        - name: clientTrackingNumber
+          in: query
+          schema:
+            type: string
+          description: Filter HAWBs by client tracking number (partial match with ILIKE)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - CREATED
+              - PENDING_AGENT_VALIDATION
+              - CUSTOM_DECLARATION_REJECTED
+              - CUSTOMS_DECLARED
+              - READY_FOR_CUSTOM_CLEARANCE
+              - REQUIRES_CUSTOM_INSPECTION
+              - REQUIRES_CUSTOM_DUTY_PAYMENT
+              - HANDLER_ATTENTION_RECOMMENDED
+              - WH_READY_FOR_CUSTOM_CLEARANCE
+              - WH_REQUIRES_CUSTOM_INSPECTION
+              - WH_REQUIRES_CUSTOM_DUTY_PAYMENT
+              - WH_HANDLER_ATTENTION_REQUIRED
+              - CUSTOMS_CLEARED
+              - PENDING_CUSTOM_VERIFICATION
+              - READY_FOR_HANDOVER
+              - HANDED_OVER_TO_LASTMILE
+          description: Filter by HAWB status (must match state machine status codes).
+        - name: description
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              - bigBagNumber
+              - '-bigBagNumber'
+              - lastMileTrackingNumber
+              - '-lastMileTrackingNumber'
+              - status
+              - '-status'
+      responses:
+        '200':
+          description: Successful HAWB list retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListHawbsSuccessResponse'
+        '400':
+          description: Bad Request - Invalid query parameters
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missingCountry:
-                  summary: Missing receiver country
-                  value:
-                    statusCode: 400
-                    message: 'Invalid Payload: Receiver address country is required'
-                    error: Bad Request
-                validationError:
-                  summary: Field validation error
-                  value:
-                    statusCode: 400
-                    message: Invalid Payload
-                    error: Bad Request
-                    details:
-                      - path:
-                          - parcel
-                          - IOSSNo
-                        message: Required field missing
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+              example:
+                success: false
+                error:
+                  code: INVALID_REQUEST
+                  message: Invalid query parameters provided
+                  details:
+                    field: mawbCreatedAt
+                    error: Invalid date-time format or missing required parameter
+                    code: INVALID_FORMAT
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: FORBIDDEN
+                  message: Insufficient permissions to access this resource
+        '404':
+          description: Not Found - MAWB or HAWB not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: RESOURCE_NOT_FOUND
+                  message: MAWB not found or no HAWBs exist for the given MAWB
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error - Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred while processing the request
       tags:
-        - ASN Integration
-      servers:
-        - url: https://api.serhafen-net.andinolabs.tech/last-mile
-          description: Production API
-        - url: https://tech.andinolabs.com/last-mile
-          description: Staging API
-        - url: /last-mile
-          description: Local/Development API
+        - Shipments
 components:
   schemas:
-    CreateShipmentRequest:
+    UpdateMawbDetailsRequest:
       type: object
-      required:
-        - clientId
-        - destinationCountry
-        - shipFrom
-        - shipTo
-        - consigneeInfo
-        - packages
       properties:
-        country:
+        flightNumber:
           type: string
-          description: Country (optional legacy field)
-          example: Peru
-        company:
+          maxLength: 20
+          description: Flight number
+          example: AR1132
+        manifestNumber:
           type: string
-          description: Company name (optional)
-          example: Serhafen
-        createdBy:
-          type: string
-          description: User who created the shipment
-          example: user@serhafen.com
-        externalId:
-          type: string
-          description: External system identifier
-          example: EXT-12345
-        mawbId:
-          type: string
-          description: Master AWB ID reference
-          example: MAWB-001
-        awbDetailId:
-          type: string
-          description: AWB detail ID reference
-          example: AWBD-001
-        statusId:
+          maxLength: 50
+          pattern: ^[A-Z0-9-]+$
+          description: Manifest number
+          example: MAN-001-1234569
+        bigbagCount:
           type: integer
-          description: Initial status ID (optional)
-          example: 1
-        statusCode:
+          minimum: 0
+          description: Big bag count
+          example: 5
+        totalPackagesDeclared:
+          type: integer
+          minimum: 0
+          description: Total packages declared
+          example: 8
+        totalWeight:
+          type: number
+          minimum: 0
+          description: Total weight
+          example: 1500
+        totalWeightUOM:
           type: string
-          description: Initial status code (optional)
-          example: '8000'
-        guid:
+          maxLength: 10
+          description: Total weight unit of measure
+          example: kg
+        referenceNumber:
           type: string
-          format: uuid
-          description: Global unique identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        clientId:
-          $ref: '#/components/schemas/ClientId'
-        destinationCountry:
-          $ref: '#/components/schemas/CountryCode'
-        masterAwbNo:
+          maxLength: 100
+          description: Reference number
+          example: REF-123456789
+        mawbNumber:
           type: string
-          description: Master air waybill number
-          example: AWB-PE-20260209-001
-        bigBagId:
-          type: string
-          description: Consolidation bag identifier
-          example: BB-PE-001
-        shipFrom:
-          $ref: '#/components/schemas/Address'
-        shipTo:
-          $ref: '#/components/schemas/Address'
-        consigneeInfo:
-          $ref: '#/components/schemas/ConsigneeInfo'
-        returnTo:
-          $ref: '#/components/schemas/Address'
-        packages:
-          type: array
-          description: List of packages in shipment
-          items:
-            $ref: '#/components/schemas/Package'
-          minItems: 1
-          maxItems: 100
-        uniqueReferences:
-          type: array
-          description: Custom reference identifiers (keys must be unique)
-          items:
-            $ref: '#/components/schemas/UniqueReference'
-        eventOccurredAt:
+          maxLength: 20
+          description: MAWB number
+          example: 125-87654321
+        eta:
           type: string
           format: date-time
-          description: Timestamp when event occurred (ISO 8601)
-          example: '2026-02-09T10:30:00Z'
-    ShipmentResponse:
+          description: Estimated time of arrival
+          example: '2024-01-20T14:30:00Z'
+        etd:
+          type: string
+          format: date-time
+          description: Estimated time of departure
+          example: '2024-01-18T08:15:00Z'
+    UpdateMawbDetailsResponse:
+      type: object
+      required:
+        - data
+        - message
+      properties:
+        data:
+          $ref: '#/components/schemas/UpdateMawbDetailsResponseData'
+        message:
+          type: string
+          description: Response message
+          example: MAWB updated successfully
+    UpdateMawbDetailsValidationErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/UpdateMawbDetailsValidationErrorResponseError'
+    UpdateMawbDetailsNotFoundErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/UpdateMawbDetailsNotFoundErrorResponseError'
+    UpdateMawbDetailsConflictErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/UpdateMawbDetailsConflictErrorResponseError'
+    UpdateMawbDetailsServerErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/UpdateMawbDetailsServerErrorResponseError'
+    ListHawbsSuccessResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/HawbData'
+        meta:
+          $ref: '#/components/schemas/ListHawbsMeta'
+    ErrorResponse:
       type: object
       properties:
-        shipmentId:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+    UpdateMawbDetailsResponseData:
+      type: object
+      required:
+        - mawbId
+        - mawbNumber
+        - status
+        - createdAt
+      properties:
+        mawbId:
           type: string
-          format: uuid
-          description: Unique shipment identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        clientId:
-          $ref: '#/components/schemas/ClientId'
-        destinationCountry:
-          $ref: '#/components/schemas/CountryCode'
-        masterAwbNo:
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+          description: UUID of the MAWB that was updated
+          example: 018f1234-5678-9abc-def0-123456789abc
+        mawbNumber:
           type: string
-          example: AWB-PE-20260209-001
-        bigBagId:
+          description: MAWB number
+          example: MAWB-2024-001
+        status:
           type: string
-          example: BB-PE-001
-        shipFrom:
-          $ref: '#/components/schemas/Address'
-        shipTo:
-          $ref: '#/components/schemas/Address'
-        consigneeInfo:
-          $ref: '#/components/schemas/ConsigneeInfo'
-        returnTo:
-          $ref: '#/components/schemas/Address'
-        uniqueReferences:
-          type: array
-          items:
-            $ref: '#/components/schemas/UniqueReference'
-        packages:
-          type: array
-          items:
-            $ref: '#/components/schemas/PackageResponse'
+          description: Current status of the MAWB
+          example: UPDATED
         createdAt:
           type: string
           format: date-time
-          description: Shipment creation timestamp
-          example: '2026-02-09T10:30:00Z'
+          description: Creation timestamp
+          example: '2024-01-15T10:30:00Z'
         updatedAt:
           type: string
           format: date-time
-          description: Last update timestamp
-          example: '2026-02-09T10:30:00Z'
-    UpdateShipmentRequest:
-      type: object
-      required:
-        - movementType
-        - clientId
-        - destinationCountry
-        - shipFrom
-        - shipTo
-        - consigneeInfo
-        - packages
-      description: |
-        Update shipment request. Inherits all fields from CreateShipmentRequest 
-        with an additional required `movementType` field.
-      properties:
-        movementType:
-          $ref: '#/components/schemas/ShipmentMovementType'
-        country:
+          description: Update timestamp
+          example: '2024-01-15T10:30:00Z'
+        manifestNumber:
           type: string
-          description: Country (optional legacy field)
-          example: Peru
-        company:
+          description: Manifest number
+          example: MAN-001-1234569
+        flightNumber:
           type: string
-          description: Company name (optional)
-          example: Serhafen
-        createdBy:
-          type: string
-          description: User who created the shipment
-          example: user@serhafen.com
-        externalId:
-          type: string
-          description: External system identifier
-          example: EXT-12345
-        mawbId:
-          type: string
-          description: Master AWB ID reference
-          example: MAWB-001
-        awbDetailId:
-          type: string
-          description: AWB detail ID reference
-          example: AWBD-001
-        statusId:
+          maxLength: 20
+          description: Flight number
+          example: AR1132
+        bigbagCount:
           type: integer
-          description: Status ID (optional)
-          example: 1
-        statusCode:
-          type: string
-          description: Status code (optional)
-          example: '8000'
-        guid:
-          type: string
-          format: uuid
-          description: Global unique identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        clientId:
-          $ref: '#/components/schemas/ClientId'
-        destinationCountry:
-          $ref: '#/components/schemas/CountryCode'
-        masterAwbNo:
-          type: string
-          description: Master air waybill number
-          example: AWB-PE-20260209-001
-        bigBagId:
-          type: string
-          description: Consolidation bag identifier
-          example: BB-PE-001
-        shipFrom:
-          $ref: '#/components/schemas/Address'
-        shipTo:
-          $ref: '#/components/schemas/Address'
-        consigneeInfo:
-          $ref: '#/components/schemas/ConsigneeInfo'
-        returnTo:
-          $ref: '#/components/schemas/Address'
-        packages:
-          type: array
-          description: List of packages to update
-          items:
-            $ref: '#/components/schemas/Package'
-          minItems: 1
-        uniqueReferences:
-          type: array
-          description: Custom reference identifiers (keys must be unique)
-          items:
-            $ref: '#/components/schemas/UniqueReference'
-        eventOccurredAt:
-          type: string
-          format: date-time
-          description: Timestamp when event occurred (ISO 8601)
-          example: '2026-02-09T14:00:00Z'
-    ErrorResponse:
-      type: object
-      required:
-        - statusCode
-        - message
-      description: Standard error response format for all error scenarios
-      properties:
-        statusCode:
+          description: Big bag count
+          example: 5
+        totalPackagesDeclared:
           type: integer
-          description: HTTP status code matching the response status
-          examples:
-            - 400
-            - 404
-            - 500
-          minimum: 100
-          maximum: 599
-        message:
-          type: string
-          description: |
-            Detailed error message explaining what went wrong.
-            Should be actionable for API consumers.
-          examples:
-            - 'Invalid tracking number format: INVALID123'
-            - 'No tracking data found for: SH019999999999PE'
-        error:
-          type: string
-          description: |
-            HTTP error name/type.
-            Standard HTTP error names (Bad Request, Not Found, etc.)
-          examples:
-            - Bad Request
-            - Not Found
-            - Internal Server Error
-    ClientId:
-      type: string
-      enum:
-        - '01'
-        - '02'
-      description: |
-        Client identifier code assigned by Serhafen.
-        Contact Serhafen support to obtain your unique client ID.
-        - "01": Example Client A
-        - "02": Example Client B
-      example: '01'
-    CountryCode:
-      type: string
-      enum:
-        - CL
-        - PE
-        - AR
-        - US
-      description: ISO 3166-1 alpha-2 country code
-      example: PE
-    PackageTrackingResponse:
-      type: object
-      properties:
-        trackingNumber:
-          type: string
-          description: Serhafen tracking number
-          example: SH-PE-123456789
-        partnerName:
-          type: string
-          description: Assigned partner name
-          example: Dinet
-        partnerTrackingNumber:
-          type: string
-          description: Partner tracking number
-          example: DNT-PE-789456123
-        clientId:
-          $ref: '#/components/schemas/ClientId'
-        destinationCountry:
-          $ref: '#/components/schemas/CountryCode'
-        shipTo:
-          $ref: '#/components/schemas/ShipToAddress'
-        uniqueReferences:
-          type: array
-          description: Custom references
-          items:
-            $ref: '#/components/schemas/UniqueReference'
-        isActive:
-          type: boolean
-          description: Whether shipment is still in transit
-          example: true
-        lastUpdatedAt:
-          type: string
-          format: date-time
-          description: Last status update timestamp
-          example: '2026-02-09T16:45:00Z'
-        status:
-          type: array
-          description: Complete status history (chronological order)
-          items:
-            $ref: '#/components/schemas/StatusUpdate'
-        executorUpdates:
-          type: array
-          description: Raw executor status updates (if detailedExecInfo=true)
-          items:
-            $ref: '#/components/schemas/ExecutorStatusUpdate'
-    Address:
-      type: object
-      required:
-        - region
-        - province
-        - comuna
-        - locality
-      properties:
-        region:
-          type: string
-          description: Region or state
-          example: Callao
-        province:
-          type: string
-          description: Province
-          example: Callao
-        comuna:
-          type: string
-          description: District or comuna
-          example: Cercado
-        locality:
-          type: string
-          description: Street address and details
-          example: Av. Colonial, Warehouse 5, Gate B
-        district:
-          type: string
-          description: District (alternative to comuna)
-          example: Cercado
-        zipCode:
-          type: string
-          description: Postal/ZIP code
-          example: '07001'
-        latitude:
+          description: Total packages declared
+          example: 8
+        totalWeight:
           type: number
-          format: double
-          description: GPS latitude coordinate
-          example: -12.0464
-        longitude:
-          type: number
-          format: double
-          description: GPS longitude coordinate
-          example: -77.0428
-        phone:
-          type: string
-          description: Contact phone number
-          example: '+5112345678'
-    ConsigneeInfo:
-      type: object
-      required:
-        - fullName
-        - email
-        - phone
-      properties:
-        fullName:
-          type: string
-          description: Full name of recipient
-          example: Juan Pérez
-          minLength: 1
-          maxLength: 255
-        email:
-          type: string
-          format: email
-          description: Email address
-          example: juan.perez@example.com
-        phone:
-          type: string
-          description: Phone number with country code
-          example: '+51987654321'
-          pattern: ^\+[0-9]{10,15}$
-        customerIdentifier:
-          type: string
-          description: National ID number (DNI, RUT, etc.)
-          example: '12345678'
-        customerIdentifierType:
-          type: string
-          description: Type of identification
-          example: DNI
-          enum:
-            - DNI
-            - RUT
-            - CI
-            - PASSPORT
-    Package:
-      type: object
-      required:
-        - trackingNumber
-        - weight
-        - weightUom
-        - contentType
-      properties:
-        trackingNumber:
-          type: string
-          description: Serhafen tracking number
-          example: SH-PE-123456789
-          pattern: ^SH-[A-Z]{2}-[0-9]{9,}$
-        clientTrackingNumber:
-          type: string
-          description: Client's reference number
-          example: AE-ORDER-001
-        dimensions:
-          $ref: '#/components/schemas/Dimensions'
-        weight:
-          type: number
-          format: double
-          description: Package weight
-          example: 2.5
-          minimum: 0.01
-        weightUom:
-          $ref: '#/components/schemas/WeightUOM'
-        contentType:
-          $ref: '#/components/schemas/ContentType'
-        numberOfPieces:
-          type: integer
-          description: Number of pieces in package
-          example: 1
-          minimum: 1
-        contentDetails:
-          type: array
-          description: List of items in package (minimum 1 if provided)
-          items:
-            $ref: '#/components/schemas/PackageContentDetails'
-          minItems: 1
-        uniqueReferences:
-          type: array
-          description: Package-specific unique references
-          items:
-            $ref: '#/components/schemas/UniqueReference'
-        logisticsOperator:
-          type: string
-          description: Preferred logistics partner (optional)
-          example: DNT
-        packageValue:
-          type: number
-          format: double
-          description: Total declared value
-          example: 25
           minimum: 0
-        packageValueCurrency:
+          description: Total weight
+          example: 1500
+        totalWeightUOM:
           type: string
-          description: Currency code (ISO 4217)
-          example: USD
-          pattern: ^[A-Z]{3}$
-        orderDate:
+          maxLength: 10
+          description: Total weight unit of measure
+          example: kg
+        referenceNumber:
           type: string
-          format: date-time
-          description: Order date (ISO 8601)
-          example: '2026-02-09T00:00:00Z'
-        status:
-          type: object
-          description: Package status information (optional)
-          properties:
-            statusId:
-              type: integer
-              example: 1
-            statusName:
-              type: string
-              example: INITIATED
-            statusInformation:
-              type: string
-              example: Package created
-            statusDate:
-              type: string
-              format: date-time
-              example: '2026-02-09T10:30:00Z'
-            trackingUrl:
-              type: string
-              format: uri
-              example: https://tracking.partner.com/track/123
-        trackingUrl:
-          type: string
-          format: uri
-          description: Tracking URL
-          example: https://tracking.partner.com/track/123
-        logisticsOrderCode:
-          type: string
-          description: Logistics order code
-          example: LP00123456789
-        masterAwbNo:
-          type: string
-          description: Master AWB number (package level)
-          example: AWB-PE-20260209-001
-        latestStatusOccurredAt:
+          maxLength: 100
+          description: Reference number
+          example: REF-123456789
+        eta:
           type: string
           format: date-time
-          description: Latest status timestamp
-          example: '2026-02-09T10:30:00Z'
-    UniqueReference:
+          description: Estimated time of arrival
+          example: '2024-01-20T14:30:00Z'
+        etd:
+          type: string
+          format: date-time
+          description: Estimated time of departure
+          example: '2024-01-18T08:15:00Z'
+    UpdateMawbDetailsValidationErrorResponseError:
       type: object
       required:
-        - key
-        - value
-      properties:
-        key:
-          type: string
-          description: Reference type identifier
-          example: order_id
-        value:
-          type: string
-          description: Reference value
-          example: ORD-2026-12345
-    PackageResponse:
-      type: object
-      properties:
-        packageId:
-          type: string
-          format: uuid
-          description: Internal package ID
-          example: 660e8400-e29b-41d4-a716-446655440001
-        trackingNumber:
-          type: string
-          description: Serhafen tracking number
-          example: SH-PE-123456789
-        clientTrackingNumber:
-          type: string
-          description: Client reference number
-          example: AE-ORDER-001
-        partnerTrackingNumber:
-          type: string
-          nullable: true
-          description: Partner tracking number (assigned asynchronously)
-          example: DNT-PE-789456123
-        latestStatus:
-          type: string
-          description: Current status name
-          example: LM_SHIPMENT_INITIATED
-        canonicalStatusCode:
-          type: string
-          description: Internal canonical status code (for Serhafen use only)
-          example: '8000'
-          deprecated: true
-          x-internal: true
-        latestStatusOccurredAt:
-          type: string
-          format: date-time
-          description: Latest status timestamp
-          example: '2026-02-09T10:30:00Z'
-        executorName:
-          type: string
-          nullable: true
-          description: Assigned executor/partner
-          example: DNT
-          enum:
-            - null
-            - ENVIAME
-            - IP
-            - DNT
-            - SAVAR
-            - URP
-        partnerName:
-          type: string
-          nullable: true
-          description: Partner name
-          example: Dinet
-        weight:
-          type: number
-          format: double
-          example: 2.5
-        weightUom:
-          $ref: '#/components/schemas/WeightUOM'
-        dimensions:
-          $ref: '#/components/schemas/Dimensions'
-    ShipmentMovementType:
-      type: string
-      enum:
-        - LM_SHIPMENT_CREATION
-        - LM_READY_FOR_PICKUP
-        - LM_DEPARTED_SH_PM_ZONE
-        - LM_SHIPMENT_CANCELLATION
-      description: |
-        Type of shipment movement/action:
-        - `LM_SHIPMENT_CREATION`: Initial shipment creation
-        - `LM_READY_FOR_PICKUP`: Package ready for carrier pickup
-        - `LM_DEPARTED_SH_PM_ZONE`: Package handed to carrier
-        - `LM_SHIPMENT_CANCELLATION`: Cancel shipment
-      example: LM_READY_FOR_PICKUP
-    ShipToAddress:
-      type: object
-      properties:
-        province:
-          type: string
-          example: Arequipa
-        city:
-          type: string
-          example: Arequipa
-        district:
-          type: string
-          example: Cercado
-    StatusUpdate:
-      type: object
+        - code
+        - message
+        - details
       properties:
         code:
           type: string
-          description: Internal canonical status code (for Serhafen use only, clients should use 'name' and 'stage')
-          example: '8015'
-          deprecated: true
-          x-internal: true
-        name:
+          example: VALIDATION_ERROR
+        message:
           type: string
-          description: Human-readable status name
-          example: CUSTOMS_CLEARED
-        statusDate:
-          type: string
-          format: date-time
-          description: Status timestamp
-          example: '2026-02-09T14:00:00Z'
-        location:
-          type: string
-          description: Location where status occurred
-          example: Callao Customs, Peru
-        stage:
-          $ref: '#/components/schemas/StatusStage'
-        recipientName:
-          type: string
-          description: Recipient name (for delivered status)
-          example: Juan Pérez
-        remarks:
-          type: string
-          description: Additional status information
-          example: Package cleared customs successfully
-    ExecutorStatusUpdate:
-      type: object
-      properties:
-        executorStatusCode:
-          type: string
-          description: Partner-specific status code
-          example: DNT-100
-        executorStatusName:
-          type: string
-          description: Partner status description
-          example: En ruta de entrega
-        statusDate:
-          type: string
-          format: date-time
-          description: Status timestamp
-          example: '2026-02-09T16:00:00Z'
-        remarks:
-          type: string
-          description: Additional details
-          example: Paquete en camión de reparto
-        location:
-          type: string
-          description: Location
-          example: Arequipa Distribution Center
-    Dimensions:
+          example: Request validation failed
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateMawbDetailsValidationErrorDetail'
+    UpdateMawbDetailsNotFoundErrorResponseError:
       type: object
       required:
-        - length
-        - lengthUom
-        - width
-        - widthUom
-        - height
-        - heightUom
+        - code
+        - message
       properties:
-        length:
-          type: number
-          format: double
-          description: Package length
-          example: 30
-          minimum: 0.1
-        lengthUom:
-          $ref: '#/components/schemas/LengthUOM'
-        width:
-          type: number
-          format: double
-          description: Package width
-          example: 20
-          minimum: 0.1
-        widthUom:
-          $ref: '#/components/schemas/LengthUOM'
-        height:
-          type: number
-          format: double
-          description: Package height
-          example: 15
-          minimum: 0.1
-        heightUom:
-          $ref: '#/components/schemas/LengthUOM'
-    WeightUOM:
-      type: string
-      enum:
-        - KG
-        - LB
-        - G
-      description: Weight unit of measure
-      example: KG
-    ContentType:
-      type: string
-      enum:
-        - BOX
-        - DRY_FOOD
-        - REFRIGERATED_FOOD
-        - FROZEN_FOOD
-        - DANGEROUS_MATERIALS
-      description: Type of content in package
-      example: BOX
-    PackageContentDetails:
+        code:
+          type: string
+          example: MAWB_NOT_FOUND
+        message:
+          type: string
+          example: MAWB not found
+    UpdateMawbDetailsConflictErrorResponseError:
       type: object
+      required:
+        - code
+        - message
       properties:
-        productId:
+        code:
           type: string
-          description: Product SKU or ID
-          example: SKU-12345
-        productDescription:
+          description: Error code indicating conflict type (VERSION_MISMATCH, CONCURRENT_UPDATE)
+          example: VERSION_MISMATCH
+        message:
           type: string
-          description: Description of product
-          example: Smartphone Protective Case
-          maxLength: 500
-        contentType:
-          $ref: '#/components/schemas/ContentType'
-        hsCode:
+          description: Human-readable error message
+          example: MAWB was modified by another operation. Please reload and retry.
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateMawbDetailsValidationErrorDetail'
+    UpdateMawbDetailsServerErrorResponseError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
           type: string
-          description: Harmonized System code for customs
-          example: 3926.90.90
-          pattern: ^\d{4}\.\d{2}\.\d{2}$
-        productValue:
+          example: INTERNAL_SERVER_ERROR
+        message:
+          type: string
+          example: An unexpected error occurred
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateMawbDetailsValidationErrorDetail'
+    HawbData:
+      type: object
+      required:
+        - id
+        - mawbId
+        - mawbCreatedAt
+        - clientId
+        - bigBagId
+        - bigBagCreatedAt
+        - bigBagNumber
+        - consigneeName
+        - consigneeAddress
+        - consigneeCity
+        - consigneeCountry
+        - consigneeEmail
+        - consigneePhone
+        - consigneeIdentificationType
+        - consigneeIdentificationNumber
+        - destinationCountryCode
+        - lastMileTrackingNumber
+        - grossWeight
+        - freightPrice
+        - insurancePrice
+        - declaredPrice
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the HAWB record.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the HAWB was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the HAWB was last updated.
+        clientId:
+          type: string
+          format: uuid
+          description: Unique identifier of the client that owns this HAWB.
+        destinationCountryCode:
+          type: string
+          pattern: ^[A-Z]{2}$
+          description: ISO 3166-1 alpha-2 country code for the destination.
+        lastMileTrackingNumber:
+          type: string
+          maxLength: 100
+          description: Tracking number used by the last-mile carrier.
+        bigBagId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the parent Big Bag (if any).
+        bigBagCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation timestamp of the Big Bag.
+        bigBagNumber:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Unique identifier for the Big Bag.
+        mawbId:
+          type: string
+          format: uuid
+          description: Foreign key reference to the MAWB.
+        mawbCreatedAt:
+          type: string
+          format: date-time
+          description: ISO timestamp of the MAWB creation date (used in partitioning).
+        consigneeName:
+          type: string
+        consigneeAddress:
+          type: string
+        consigneeCity:
+          type: string
+        consigneeCountry:
+          type: string
+          pattern: ^[A-Z]{2}$
+        consigneeEmail:
+          type: string
+          format: email
+        consigneePhone:
+          type: string
+        consigneeIdentificationType:
+          type: string
+          enum:
+            - PASSPORT
+            - NATIONAL_ID
+            - TAX_ID
+            - OTHER
+        consigneeIdentificationNumber:
+          type: string
+        returnName:
+          type: string
+        returnAddress:
+          type: string
+        returnCity:
+          type: string
+        returnCountry:
+          type: string
+          pattern: ^[A-Z]{2}$
+        returnEmail:
+          type: string
+          format: email
+        returnPhone:
+          type: string
+        grossWeight:
           type: number
-          format: double
-          description: Unit value of product
-          example: 25
+          format: float
+        netWeight:
+          type: number
+          format: float
+        weightUom:
+          type: string
+          enum:
+            - KG
+            - LB
+        pieces:
+          type: integer
           minimum: 0
-        productValueCurrency:
+        dangerousGoods:
+          type: boolean
+        freightPrice:
+          type: number
+          format: float
+        insurancePrice:
+          type: number
+          format: float
+        declaredPrice:
+          type: number
+          format: float
+        goodsPrice:
           type: string
-          description: Currency code (ISO 4217)
-          example: USD
+        currency:
+          type: string
           pattern: ^[A-Z]{3}$
-        barcode:
+          description: ISO 4217 currency code.
+        customsClearanceMode:
           type: string
-          description: Product barcode
-          example: '1234567890123'
-        category:
+          enum:
+            - STANDARD
+            - EXPRESS
+            - MIXED
+        logisticsOrderCode:
           type: string
-          description: Product category
-          example: Electronics Accessories
-    StatusStage:
-      type: string
-      enum:
-        - INITIATED
-        - IN_TRANSIT
-        - OUT_FOR_DELIVERY
-        - DELIVERED
-        - EXCEPTION
-        - RETURNED
-      description: High-level shipment stage
-      example: IN_TRANSIT
-    LengthUOM:
-      type: string
-      enum:
-        - cm
-        - in
-        - mm
-      description: Length unit of measure
-      example: cm
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: api-key
-      description: API key for authentication
-    ExecutorAuth:
-      type: apiKey
-      in: header
-      name: executor-name
-      description: Executor name for partner webhooks (DNT, SAVAR, ENVIAME, IP, URP)
-  responses:
-    BadRequest:
-      description: Bad Request - Invalid input data
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            statusCode: 400
-            message: Validation failed
-            error: Bad Request
-            details:
-              - path:
-                  - destinationCountry
-                message: 'Must be one of: CL, PE, AR, US'
-    Unauthorized:
-      description: Unauthorized - Missing or invalid API key
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            statusCode: 401
-            message: Unauthorized - Invalid or missing API key
-            error: Unauthorized
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            statusCode: 500
-            message: An unexpected error occurred
-            error: Internal Server Error
-  requestBodies: {}
-  parameters: {}
+        lastmilePartnerCode:
+          type: string
+        uniqueReferences:
+          type: string
+          description: Optional JSON string or comma-separated list of unique reference identifiers.
+        statusId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Foreign key reference to a status table, if applicable.
+        status:
+          type: string
+          nullable: true
+          enum:
+            - CREATED
+            - PENDING_AGENT_VALIDATION
+            - CUSTOM_DECLARATION_REJECTED
+            - CUSTOMS_DECLARED
+            - READY_FOR_CUSTOM_CLEARANCE
+            - REQUIRES_CUSTOM_INSPECTION
+            - REQUIRES_CUSTOM_DUTY_PAYMENT
+            - HANDLER_ATTENTION_RECOMMENDED
+            - WH_READY_FOR_CUSTOM_CLEARANCE
+            - WH_REQUIRES_CUSTOM_INSPECTION
+            - WH_REQUIRES_CUSTOM_DUTY_PAYMENT
+            - WH_HANDLER_ATTENTION_REQUIRED
+            - CUSTOMS_CLEARED
+            - PENDING_CUSTOM_VERIFICATION
+            - READY_FOR_HANDOVER
+            - HANDED_OVER_TO_LASTMILE
+          description: Current status of the HAWB (must match state machine status codes).
+          example: CUSTOMS_DECLARED
+        createdBy:
+          type: string
+          maxLength: 100
+          description: User or system that created the HAWB.
+        updatedBy:
+          type: string
+          maxLength: 100
+          description: User or system that last updated the HAWB.
+    ListHawbsMeta:
+      type: object
+      required:
+        - page
+        - pageSize
+        - hasNextPage
+        - hasPreviousPage
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+    ErrorObject:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: ERROR_CODE
+        message:
+          type: string
+          example: ERROR_MESSAGE
+        details:
+          type: object
+          properties:
+            field:
+              type: string
+              example: ERROR_FIELD
+            error:
+              type: string
+              example: ERROR_MESSAGE
+            code:
+              type: string
+              example: ERROR_CODE
+          required:
+            - field
+            - error
+            - code
+    UpdateMawbDetailsValidationErrorDetail:
+      type: object
+      required:
+        - field
+        - error
+        - code
+      properties:
+        field:
+          type: string
+          description: Field name that failed validation
+          example: flightNumber
+        error:
+          type: string
+          description: Human-readable error message
+          example: Invalid flight number format
+        code:
+          type: string
+          description: Machine-readable error code
+          example: INVALID_FORMAT
+  securitySchemes: {}
 tags:
   - name: Shipments
     description: Shipments operations
-  - name: Tracking
-    description: Tracking operations
-  - name: ASN Integration
-    description: ASN Integration operations
-security:
-  - ApiKeyAuth: []
+security: []

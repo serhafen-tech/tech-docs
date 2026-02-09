@@ -18,10 +18,88 @@ info:
     email: platform-support@serhafen.com
 paths: {}
 components:
-  schemas: {}
-  securitySchemes: {}
-  responses: {}
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - message
+      description: Standard error response format for all error scenarios
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code matching the response status
+          examples:
+            - 400
+            - 404
+            - 500
+          minimum: 100
+          maximum: 599
+        message:
+          type: string
+          description: |
+            Detailed error message explaining what went wrong.
+            Should be actionable for API consumers.
+          examples:
+            - 'Invalid tracking number format: INVALID123'
+            - 'No tracking data found for: SH019999999999PE'
+        error:
+          type: string
+          description: |
+            HTTP error name/type.
+            Standard HTTP error names (Bad Request, Not Found, etc.)
+          examples:
+            - Bad Request
+            - Not Found
+            - Internal Server Error
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: api-key
+      description: API key for authentication
+    ExecutorAuth:
+      type: apiKey
+      in: header
+      name: executor-name
+      description: Executor name for partner webhooks (DNT, SAVAR, ENVIAME, IP, URP)
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 400
+            message: Validation failed
+            error: Bad Request
+            details:
+              - path:
+                  - destinationCountry
+                message: 'Must be one of: CL, PE, AR, US'
+    Unauthorized:
+      description: Unauthorized - Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 401
+            message: Unauthorized - Invalid or missing API key
+            error: Unauthorized
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 500
+            message: An unexpected error occurred
+            error: Internal Server Error
   requestBodies: {}
   parameters: {}
 tags: []
-security: []
+security:
+  - ApiKeyAuth: []

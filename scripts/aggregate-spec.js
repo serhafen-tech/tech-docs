@@ -49,6 +49,11 @@ const CONFIG = {
             name: 'iam',
             repo: 'serhafen-tech/iam-service',
             specsPath: 'specs',
+        },
+        {
+            name: 'lastmile',
+            repo: 'serhafen-tech/serhafen-nucleo',
+            specsPath: 'specs',
         }
     ],
     audiences: ['customs', 'lastmile', 'cross-border'],

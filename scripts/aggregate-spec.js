@@ -36,11 +36,6 @@ const CLI_ARGS = parseArgs();
 const CONFIG = {
     services: [
         {
-            name: 'customs-declaration',
-            repo: 'serhafen-tech/customs-declaration',
-            specsPath: 'specs',
-        },
-        {
             name: 'cbt-docs',
             repo: 'serhafen-tech/cbt-docs',
             specsPath: 'specs',
@@ -61,9 +56,8 @@ const CONFIG = {
             specsPath: 'specs',
         }
     ],
-    audiences: ['customs', 'lastmile', 'cross-border', 'pre-alert'],
+    audiences: ['lastmile', 'cross-border', 'pre-alert'],
     audienceDescriptions: {
-        'customs': 'Public APIs for customs integration',
         'lastmile': 'Public APIs for lastmile integration',
         'pre-alert': 'Public APIs for pre-alert processing',
         'cross-border': `Public APIs for cross-border integration

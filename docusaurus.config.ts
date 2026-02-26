@@ -45,10 +45,6 @@ const config: Config = {
             {
                 specs: [
                     {
-                        spec: 'specs/customs-api.openapi.yaml',
-                        route: '/api/customs',
-                    },
-                    {
                         spec: 'specs/lastmile-api.openapi.yaml',
                         route: '/api/lastmile',
                     },
@@ -86,10 +82,6 @@ const config: Config = {
                     position: 'left',
                     items: [
                         {
-                            to: '/api/customs',
-                            label: 'Customs API',
-                        },
-                        {
                             to: '/api/lastmile',
                             label: 'Lastmile API',
                         },
@@ -111,10 +103,6 @@ const config: Config = {
                 {
                     title: 'API Documentation',
                     items: [
-                        {
-                            label: 'Customs API',
-                            to: '/api/customs',
-                        },
                         {
                             label: 'Lastmile API',
                             to: '/api/lastmile',

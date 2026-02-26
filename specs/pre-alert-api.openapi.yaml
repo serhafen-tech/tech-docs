@@ -1,0 +1,970 @@
+openapi: 3.1.0
+info:
+  title: Pre-alert API
+  version: 1.0.0
+  description: Public APIs for pre-alert processing
+  contact:
+    name: Platform Support
+    email: platform-support@serhafen.com
+paths:
+  /v0/pre-alerts:
+    get:
+      summary: List Pre-Alert Summaries
+      description: |
+        Lists pre-alert summary records (manifest level) with pagination, filtering, and sorting.
+        Each record includes downloadUrl. Query params: page, pageSize, clientCode, countryCode, status, sort (createdAt desc by default).
+      operationId: listPreAlertSummaries
+      parameters:
+        - name: x-business-unit
+          in: header
+          required: true
+          description: Business unit identifier for multi-tenant routing and data segregation. This header is required for all API requests.
+          schema:
+            type: string
+            enum:
+              - serhafen
+        - name: x-country-code
+          in: header
+          required: true
+          description: ISO 3166-1 alpha-2 country code representing the country context for the request. Used for country-specific processing and routing.
+          schema:
+            type: string
+            enum:
+              - ag
+        - name: authorization
+          in: header
+          required: true
+          description: Bearer token for authenticating API requests. The token must be included in the Authorization header.
+          schema:
+            type: string
+            example: Bearer <token>
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+          example: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Number of records per page
+          example: 10
+        - name: mawbNumber
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search by MAWB number
+          example: MAWB-2025-001234
+        - name: clientCode
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by client code
+          example: CHILE_EXPRESS
+        - name: countryCode
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by country code
+          example: AG
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by pre-alert status
+          example: COMPLETED
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - '-createdAt'
+            default: '-createdAt'
+          description: Sort field with order. Use 'createdAt' for ascending or '-createdAt' for descending (default).
+          example: '-createdAt'
+      responses:
+        '200':
+          description: Paginated list of pre-alert summary records with presigned URLs. The errorMessage field is only included when status is FAILED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPreAlertSummariesSuccessResponse'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid authorization token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions to access the resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Pre-Alert Management
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/prealert
+          description: Production API
+        - url: https://tech.andinolabs.com/prealert
+          description: Staging API
+        - url: /prealert
+          description: Local/Development API
+components:
+  schemas:
+    ListPreAlertSummariesSuccessResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreAlertSummaryResponseData'
+        meta:
+          $ref: '#/components/schemas/ListPreAlertSummariesMeta'
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+    NotificationAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the order snapshot request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
+    OrderSnapshotAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the order snapshot request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
+    WaybillAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the waybill request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
+    NotificationRequestBody:
+      type: object
+      required:
+        - channelInfo
+        - stencilId
+        - channelDataModel
+        - meta
+      properties:
+        contextId:
+          type: string
+          description: Unique identifier for the request context.
+        stencilId:
+          type: string
+          description: Identifier for the notification stencil/template.
+          enum:
+            - LOGIN_OTP
+        channelInfo:
+          $ref: '#/components/schemas/ChannelInfo'
+        channelDataModel:
+          oneOf:
+            - $ref: '#/components/schemas/EmailLoginOtpDataModel'
+          discriminator:
+            propertyName: stencilId
+            mapping:
+              LOGIN_OTP: '#/components/schemas/EmailLoginOtpDataModel'
+        meta:
+          $ref: '#/components/schemas/NotificationMeta'
+    OrderSnapshotRequestBody:
+      type: object
+      properties:
+        eventDateTime:
+          type: integer
+          description: Unix timestamp of the event
+          examples:
+            - 1701369600
+        orderId:
+          type: string
+          description: Unique identifier for the order. Identifier provided by Serhafen.
+          examples:
+            - ORD123456789
+        version:
+          type: integer
+          description: Version of the order snapshot, will help us to avoid processing older snapshots. If a snapshot with a lower version is received, it will be ignored. And if the version at system is not version - 1, we need to trigger an alert, and process the snapshot.
+          examples:
+            - 1
+        orderItems:
+          type: array
+          description: List of items included in the order
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        choreRequests:
+          type: array
+          description: List of chore requests associated with the order (cancellations, returns, etc.). We need to consider empty array if choreRequests field does not exist in the request.
+          items:
+            $ref: '#/components/schemas/ChoreRequest'
+        remarks:
+          type: string
+          description: Additional remarks or notes about the order
+      required:
+        - eventDateTime
+        - orderId
+        - version
+        - orderItems
+        - choreRequests
+        - remarks
+    WaybillRequestBody:
+      type: object
+      properties:
+        shipmentId:
+          type: string
+          description: Unique identifier for the shipment
+          examples:
+            - SHIP123456789
+        senderDetails:
+          $ref: '#/components/schemas/SenderDetails'
+        receiverDetails:
+          $ref: '#/components/schemas/ReceiverDetails'
+        orderDetails:
+          $ref: '#/components/schemas/OrderDetails'
+        parcelDetails:
+          $ref: '#/components/schemas/ParcelDetails'
+      required:
+        - shipmentId
+        - senderDetails
+        - receiverDetails
+        - orderDetails
+        - parcelDetails
+    PreAlertSummaryResponseData:
+      type: object
+      required:
+        - preAlertId
+        - clientCode
+        - clientName
+        - countryCode
+        - status
+        - mawbNumber
+        - manifestNumber
+        - totalParcels
+        - downloadUrl
+        - createdAt
+        - updatedAt
+      properties:
+        preAlertId:
+          type: string
+          format: uuid
+          description: Unique identifier for the pre-alert summary record.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        clientCode:
+          type: string
+          description: Client identifier.
+          example: CHILE_EXPRESS
+        clientName:
+          type: string
+          description: Client name.
+          example: Chile Express
+        countryCode:
+          type: string
+          description: Country code.
+          example: AG
+        status:
+          type: string
+          description: Status of the pre-alert.
+          example: COMPLETED
+        mawbNumber:
+          type: string
+          description: MAWB number.
+          example: MAWB-2025-001234
+        manifestNumber:
+          type: string
+          description: Manifest number.
+          example: MAN-2025-567890
+        totalParcels:
+          type: integer
+          description: Total parcels in the manifest.
+          example: 150
+        downloadUrl:
+          type: string
+          format: uri
+          description: S3 pre-signed URL for the manifest declare file.
+          example: https://pre-alert-data.s3.amazonaws.com/manifests/2025/12/manifest-001234.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600
+        errorMessage:
+          type: string
+          description: Error message. Only present when status is FAILED.
+          example: 'Validation failed: Missing required field ''consigneeAddress'''
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp.
+          example: '2025-12-11T10:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Record last update timestamp.
+          example: '2025-12-11T10:30:00Z'
+    ListPreAlertSummariesMeta:
+      type: object
+      required:
+        - page
+        - pageSize
+        - hasNextPage
+        - hasPreviousPage
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+    ErrorObject:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: ERROR_CODE
+        message:
+          type: string
+          example: ERROR_MESSAGE
+        details:
+          type: object
+          properties:
+            field:
+              type: string
+              example: ERROR_FIELD
+            error:
+              type: string
+              example: ERROR_MESSAGE
+            code:
+              type: string
+              example: ERROR_CODE
+          required:
+            - field
+            - error
+            - code
+    ChannelInfo:
+      type: object
+      required:
+        - type
+        - from
+        - to
+      properties:
+        type:
+          type: string
+          enum:
+            - EMAIL
+        to:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
+        from:
+          $ref: '#/components/schemas/Recipient'
+    EmailLoginOtpDataModel:
+      type: object
+      description: Data model for LOGIN_OTP stencil when using EMAIL channel.
+      required:
+        - otp
+        - time
+      properties:
+        otp:
+          type: string
+          description: One-time password to be sent.
+          examples:
+            - '123456'
+        time:
+          type: string
+          description: Time validity for the OTP.
+          examples:
+            - 10 minutes
+    NotificationMeta:
+      type: object
+      required:
+        - otpGeneratedTime
+        - userRequestTime
+      properties:
+        otpGeneratedTime:
+          type: integer
+          examples:
+            - 1633024800
+          format: long
+        userRequestTime:
+          type: integer
+          examples:
+            - 1633024860
+          format: long
+    OrderItem:
+      type: object
+      properties:
+        orderItemId:
+          type: string
+          description: Unique identifier for the order item. Identifier provided by Serhafen, Seller order line item
+        status:
+          type: array
+          description: List of status entries for this order item, tracking its progression through the fulfillment process
+          items:
+            $ref: '#/components/schemas/ItemStatus'
+      required:
+        - orderItemId
+        - status
+    ChoreRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of chore request being made
+          enum:
+            - CANCEL
+            - RETURN_COMPLETE_NOTIFY
+        choreRequestId:
+          type: string
+          description: Unique identifier of the request
+        flowType:
+          type: string
+          description: Origin of the chore request (customer-initiated or seller-initiated)
+          enum:
+            - CUSTOMER_CANCEL
+            - CUSTOMER_RETURN
+            - SELLER_CANCEL
+        orderItems:
+          type: array
+          description: List of order items affected by this chore request
+          items:
+            $ref: '#/components/schemas/OrderItem'
+      required:
+        - type
+        - choreRequestId
+        - flowType
+        - orderItems
+    SenderDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the sender
+          examples:
+            - SENDER001
+        locationId:
+          type: string
+          description: Location identifier for the sender's address
+          examples:
+            - LOC001
+      required:
+        - id
+        - locationId
+        - collectionDetails
+    ReceiverDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the receiver
+          examples:
+            - RECEIVER001
+        locationId:
+          type: string
+          description: Location identifier for the receiver's address
+          examples:
+            - LOC002
+      required:
+        - id
+        - locationId
+    OrderDetails:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Unique identifier for the order associated with this shipment
+          examples:
+            - ORD123456789
+        items:
+          type: array
+          description: List of items included in the shipment
+          items:
+            $ref: '#/components/schemas/ShipmentItem'
+      required:
+        - orderId
+        - items
+    ParcelDetails:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          description: Total number of parcels in the shipment
+          minimum: 1
+          examples:
+            - 3
+        totalWeight:
+          type: number
+          description: Total weight of all parcels in kilograms
+          minimum: 0
+          examples:
+            - 15.5
+            - 22.3
+        totalVolume:
+          type: number
+          description: Total volume of all parcels in cubic meters
+          minimum: 0
+          examples:
+            - 0.5
+            - 1.2
+        parcels:
+          type: array
+          description: List of individual parcels in the shipment
+          items:
+            $ref: '#/components/schemas/Parcel'
+      required:
+        - quantity
+        - totalWeight
+        - totalVolume
+        - parcels
+    Recipient:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the recipient.
+          examples:
+            - John Doe
+        address:
+          type: string
+          description: Contact address - email, phone number, or WhatsApp number depending on channel type.
+          examples:
+            - john.doe@example.com
+    ItemStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Current status of the order item in the fulfillment lifecycle
+          enum:
+            - APPROVED
+            - RESERVED
+            - READY_TO_SHIP
+            - SHIPPED
+            - OUT_FOR_DELIVERY
+            - DELIVERED
+            - CANCELLED
+        quantity:
+          type: integer
+          description: Number of items in this status
+          minimum: 1
+          examples:
+            - 2
+            - 4
+        trackingId:
+          type: string
+          description: Tracking identifier for shipment
+          examples:
+            - SH00123456789
+      required:
+        - status
+        - quantity
+    ShipmentItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+          description: Unique identifier for the item
+          examples:
+            - ITEM001
+        quantity:
+          type: integer
+          description: Number of units of this item in the shipment
+          minimum: 1
+          examples:
+            - 2
+            - 5
+      required:
+        - itemId
+        - quantity
+    Parcel:
+      type: object
+      required:
+        - IOSSNo
+        - goodsList
+      properties:
+        weight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Weight'
+        weightUnit:
+          type: string
+          description: '**[OPTIONAL]** Weight unit'
+        suggestedWeight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Suggested weight'
+        price:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Price'
+        priceUnit:
+          type: string
+          description: '**[OPTIONAL]** Price unit'
+        priceCurrency:
+          type: string
+          description: '**[OPTIONAL]** Currency code'
+        length:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Length'
+        width:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Width'
+        height:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Height'
+        size:
+          type: string
+          description: '**[OPTIONAL]** Size description'
+        volume:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Volume'
+        volumeUnit:
+          type: string
+          description: '**[OPTIONAL]** Volume unit'
+        parcelQuantity:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Parcel quantity'
+        splitNum:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Split number'
+        masterID:
+          type: string
+          description: '**[OPTIONAL]** Master ID'
+        bigBagID:
+          type: string
+          description: '**[OPTIONAL]** Big bag ID'
+        bigBagWeight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Big bag weight'
+        bigBagWeightUnit:
+          type: string
+          description: '**[OPTIONAL]** Big bag weight unit'
+        asnID:
+          type: string
+          description: '**[OPTIONAL]** ASN ID'
+        IOSSNo:
+          type: string
+          description: '**[REQUIRED]** IOSS registration number'
+        dimensionUnit:
+          type: string
+          description: '**[OPTIONAL]** Dimension unit'
+        goodsList:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoodsItem'
+          description: '**[REQUIRED]** List of goods'
+    GoodsItem:
+      type: object
+      properties:
+        productID:
+          type: string
+          description: '**[OPTIONAL]** Product ID'
+        skuID:
+          type: string
+          description: '**[OPTIONAL]** SKU ID'
+        name:
+          type: string
+          description: '**[OPTIONAL]** Product name'
+        cnName:
+          type: string
+          description: '**[OPTIONAL]** Chinese name'
+        suggestedENName:
+          type: string
+          description: '**[OPTIONAL]** Suggested English name'
+        suggestedCNName:
+          type: string
+          description: '**[OPTIONAL]** Suggested Chinese name'
+        quantity:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Quantity (string or number)'
+        weight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Weight (string or number)'
+        weightUnit:
+          type: string
+          description: '**[OPTIONAL]** Weight unit (e.g., ''g'', ''kg'')'
+        priceUnit:
+          type: string
+          description: '**[OPTIONAL]** Price unit (e.g., ''CENT'', ''USD'')'
+        priceCurrency:
+          type: string
+          description: '**[OPTIONAL]** Currency code'
+        hsCode:
+          type: string
+          description: '**[OPTIONAL]** HS code for customs'
+        categoryID:
+          type: string
+          description: '**[OPTIONAL]** Category ID'
+        categoryName:
+          type: string
+          description: '**[OPTIONAL]** Category name'
+        categoryCNName:
+          type: string
+          description: '**[OPTIONAL]** Chinese category name'
+        categoryFeature:
+          type: string
+          description: '**[OPTIONAL]** Category feature'
+        productCategory:
+          type: string
+          description: '**[OPTIONAL]** Product category'
+        declarePrice:
+          type: string
+          description: '**[OPTIONAL]** Declared price'
+        duty:
+          type: string
+          description: '**[OPTIONAL]** Duty amount'
+        url:
+          type: string
+          description: '**[OPTIONAL]** Product URL'
+        itemDeclarePrice:
+          type: string
+          description: '**[OPTIONAL]** Item declared price'
+        itemDuty:
+          type: string
+          description: '**[OPTIONAL]** Item duty'
+        extension:
+          type: string
+          description: '**[OPTIONAL]** Extension data (JSON string)'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: api-key
+      description: API key for authentication
+    ExecutorAuth:
+      type: apiKey
+      in: header
+      name: executor-name
+      description: Executor name for partner webhooks (DNT, SAVAR, ENVIAME, IP, URP)
+  responses:
+    NotificationSuccess:
+      description: Notification sent successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationAcceptedResponse'
+    ValidationError:
+      description: Invalid request or missing parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized - Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 401
+            message: Unauthorized - Invalid or missing API key
+            error: Unauthorized
+    ServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    OrderSnapshotAccepted:
+      description: Order snapshot accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
+    WaybillAccepted:
+      description: Waybill accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaybillAcceptedResponse'
+    BadRequest:
+      description: Bad Request - Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 400
+            message: Validation failed
+            error: Bad Request
+            details:
+              - path:
+                  - destinationCountry
+                message: 'Must be one of: CL, PE, AR, US'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 500
+            message: An unexpected error occurred
+            error: Internal Server Error
+  requestBodies:
+    NotificationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationRequestBody'
+    OrderSnapshotRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderSnapshotRequestBody'
+    WaybillRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaybillRequestBody'
+  parameters:
+    Authorization:
+      name: Authorization
+      in: header
+      required: true
+      description: Bearer token for authentication.
+      schema:
+        type: string
+        pattern: ^Bearer\s[a-zA-Z0-9\-._~+/]+=*$
+        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    ContentType:
+      name: Content-Type
+      in: header
+      required: true
+      description: Content type of the request body.
+      schema:
+        type: string
+        enum:
+          - application/json
+    TraceParent:
+      name: traceparent
+      in: header
+      required: true
+      description: Traceparent header for distributed tracing.
+      schema:
+        type: string
+        pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    CaseStyle:
+      name: X-Case-Style
+      in: header
+      required: false
+      description: Preferred property naming convention for the response. Use 'camel' for camelCase or 'snake' for snake_case. Defaults to camelCase if not specified.
+      schema:
+        type: string
+        enum:
+          - camel
+          - snake
+        default: camel
+        examples:
+          - camel
+          - snake
+tags:
+  - name: Pre-Alert Management
+    description: Pre-Alert Management operations
+security:
+  - ApiKeyAuth: []

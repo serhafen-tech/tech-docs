@@ -54,12 +54,18 @@ const CONFIG = {
             name: 'lastmile',
             repo: 'serhafen-tech/serhafen-nucleo',
             specsPath: 'specs',
+        },
+        {
+            name: 'pre-alert-processor',
+            repo: 'serhafen-tech/pre-alert-processor',
+            specsPath: 'specs',
         }
     ],
-    audiences: ['customs', 'lastmile', 'cross-border'],
+    audiences: ['customs', 'lastmile', 'cross-border', 'pre-alert'],
     audienceDescriptions: {
         'customs': 'Public APIs for customs integration',
         'lastmile': 'Public APIs for lastmile integration',
+        'pre-alert': 'Public APIs for pre-alert processing',
         'cross-border': `Public APIs for cross-border integration
 
 **Flexible Property Naming:** This API supports both camelCase and snake_case for property names in requests and responses. 

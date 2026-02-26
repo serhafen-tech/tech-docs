@@ -55,6 +55,10 @@ const config: Config = {
                     {
                         spec: 'specs/cross-border-api.openapi.yaml',
                         route: '/api/cbt',
+                    },
+                    {
+                        spec: 'specs/pre-alert-api.openapi.yaml',
+                        route: '/api/pre-alert',
                     }
                 ],
                 theme: {
@@ -92,6 +96,10 @@ const config: Config = {
                         {
                             to: '/api/cbt',
                             label: 'Cross Border API',
+                        },
+                        {
+                            to: '/api/pre-alert',
+                            label: 'Pre-Alert API',
                         }
                     ],
                 },
@@ -114,6 +122,10 @@ const config: Config = {
                         {
                             label: 'Cross Border Trade API',
                             to: '/api/cbt',
+                        },
+                        {
+                            label: 'Pre-Alert API',
+                            to: '/api/pre-alert',
                         }
                     ],
                 },

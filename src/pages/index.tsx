@@ -20,14 +20,20 @@ function HomepageHeader() {
                 <div className={styles.buttons}>
                     <Link
                         className="button button--secondary button--lg"
-                        to="/api/customs">
-                        Customs API Documentation
+                        to="/api/lastmile">
+                        Lastmile API Documentation
                     </Link>
                     <Link
                         className="button button--secondary button--lg"
-                        to="/api/lastmile"
+                        to="/api/cbt"
                         style={{marginLeft: '1rem'}}>
-                        Lastmile API Documentation
+                        Cross Border API Documentation
+                    </Link>
+                    <Link
+                        className="button button--secondary button--lg"
+                        to="/api/pre-alert"
+                        style={{marginLeft: '1rem'}}>
+                        Pre-Alert API Documentation
                     </Link>
                 </div>
             </div>

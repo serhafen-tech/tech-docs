@@ -1,0 +1,2411 @@
+openapi: 3.1.0
+info:
+  title: Pre-alert API
+  version: 1.0.0
+  description: Public APIs for pre-alert processing
+  contact:
+    name: Platform Support
+    email: platform-support@serhafen.com
+paths:
+  /cainiao/declare:
+    post:
+      operationId: receiveCainiaoDeclare
+      summary: Receive Declaration from Cainiao (Parcel or Manifest)
+      description: |
+        Receives declaration data from Cainiao customs platform via form-encoded POST.
+        This unified endpoint acts as the data ingestion layer for both parcel and manifest declarations.
+      parameters:
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CainiaoDeclareRequest'
+      responses:
+        '200':
+          description: Declaration received and stored for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CainiaoStandardResponse'
+              examples:
+                parcel_success_response:
+                  summary: Successful Parcel Ingestion
+                  value:
+                    content: eyJzdWNjZXNzIjp0cnVlLCJlcnJvQ29kZSI6IiIsImVycm9yTXNnIjoiIiwiY29wTm8iOiJDQjAwMDEyMzQ1Njc4OSIsIndheUJpbGxObyI6IlNOMDEyMzQ1Njc4OSJ9
+                manifest_success_response:
+                  summary: Successful Manifest Ingestion
+                  value:
+                    content: eyJzdWNjZXNzIjp0cnVlLCJlcnJvQ29kZSI6IiIsImVycm9yTXNnIjoiIiwiY29wTm8iOiJDQjk4NzY1NDMyMTAiLCJtYXN0ZXJXYXlCaWxsIjoiMTIzNDU2Nzg5In0=
+        '400':
+          description: Invalid request or signature verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CainiaoStandardResponse'
+              examples:
+                validation_error:
+                  summary: Validation Error
+                  value:
+                    content: eyJzdWNjZXNzIjpmYWxzZSwiZXJyb3JDb2RlIjoiVkFMSURBVElPTl9FUlJPUiIsImVycm9yTXNnIjoiSW52YWxpZCByZXF1ZXN0IGZvcm1hdCBvciBtaXNzaW5nIHJlcXVpcmVkIGZpZWxkcyIsImNvcE5vIjoiIiwiIndheUJpbGxObyI6IiIsIm1hc3RlcldheUJpbGwiOiIifQ==
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CainiaoStandardResponse'
+              examples:
+                server_error:
+                  summary: Internal Server Error
+                  value:
+                    content: eyJzdWNjZXNzIjpmYWxzZSwiZXJyb3JDb2RlIjoiSU5URVJOQUxfU0VSVkVSX0VSUk9SIiwiZXJyb3JNc2ciOiJBbiB1bmV4cGVjdGVkIGVycm9yIG9jY3VycmVkIHdoaWxlIHByb2Nlc3NpbmcgdGhlIGRlY2xhcmF0aW9uIiwiY29wTm8iOiIiLCJ3YXlCaWxsTm8iOiIiLCJtYXN0ZXJXYXlCaWxsIjoiIn0=
+      tags:
+        - Cainiao Integration
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+  /mawbs/cl:
+    post:
+      operationId: submitManifestDeclareChile
+      summary: Submit Manifest Declaration (Chile)
+      description: |
+        Submits a manifest declaration for Chile. The destination country is
+        implicitly CL for this endpoint.
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/XClientSecretHeader'
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        description: Manifest declaration data for Chile
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManifestDeclareRequest'
+      responses:
+        '200':
+          description: Manifest declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManifestDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+      tags:
+        - Pre-Alert Chile
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+  /parcels/cl:
+    post:
+      operationId: submitParcelDeclareChile
+      summary: Submit Parcel Declaration (Chile)
+      description: |
+        Submits a parcel declaration for Chile. This endpoint creates HAWB records
+        and handles the complete parcel-level declaration workflow.
+
+        **Chile-specific requirements:**
+        - Consignee `comuna` is required
+        - `identificationType` should be `RUT` for Chilean nationals
+        - SII tax fields (`taxCompanyId`, `taxCompanyName`) for customs compliance
+        - FOB/CIF valuation breakdown supported at parcel and item level
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/XClientSecretHeader'
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        description: Parcel declaration data for Chile
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParcelDeclareRequest'
+      responses:
+        '200':
+          description: Parcel declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParcelDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+      tags:
+        - Pre-Alert Chile
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+  /v0/pre-alerts:
+    get:
+      summary: List Pre-Alert Summaries
+      description: |
+        Lists pre-alert summary records (manifest level) with pagination, filtering, and sorting.
+        Each record includes downloadUrl. Query params: page, pageSize, clientCode, countryCode, status, sort (createdAt desc by default).
+      operationId: listPreAlertSummaries
+      parameters:
+        - name: x-business-unit
+          in: header
+          required: true
+          description: Business unit identifier for multi-tenant routing and data segregation. This header is required for all API requests.
+          schema:
+            type: string
+            enum:
+              - serhafen
+        - name: x-country-code
+          in: header
+          required: true
+          description: ISO 3166-1 alpha-2 country code representing the country context for the request. Used for country-specific processing and routing.
+          schema:
+            type: string
+            enum:
+              - ag
+        - name: authorization
+          in: header
+          required: true
+          description: Bearer token for authenticating API requests. The token must be included in the Authorization header.
+          schema:
+            type: string
+            example: Bearer <token>
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+          example: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Number of records per page
+          example: 10
+        - name: mawbNumber
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search by MAWB number
+          example: MAWB-2025-001234
+        - name: clientCode
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by client code
+          example: CHILE_EXPRESS
+        - name: countryCode
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by country code
+          example: AG
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by pre-alert status
+          example: COMPLETED
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - '-createdAt'
+            default: '-createdAt'
+          description: Sort field with order. Use 'createdAt' for ascending or '-createdAt' for descending (default).
+          example: '-createdAt'
+      responses:
+        '200':
+          description: Paginated list of pre-alert summary records with presigned URLs. The errorMessage field is only included when status is FAILED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPreAlertSummariesSuccessResponse'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid authorization token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions to access the resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Pre-Alert Management
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/prealert
+          description: Production API
+        - url: https://tech.andinolabs.com/prealert
+          description: Staging API
+        - url: /prealert
+          description: Local/Development API
+  /mawbs/pe:
+    post:
+      operationId: submitManifestDeclarePeru
+      summary: Submit Manifest Declaration (Peru)
+      description: |
+        Submits a manifest declaration for Peru. The destination country is
+        implicitly PE for this endpoint.
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/XClientSecretHeader'
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        description: Manifest declaration data for Peru
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManifestDeclareRequest'
+      responses:
+        '200':
+          description: Manifest declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManifestDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+      tags:
+        - Pre-Alert Peru
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+  /parcels/pe:
+    post:
+      operationId: submitParcelDeclarePeru
+      summary: Submit Parcel Declaration (Peru)
+      description: |
+        Submits a parcel declaration for Peru. This endpoint creates HAWB records
+        and handles the complete parcel-level declaration workflow.
+
+        **Peru-specific requirements:**
+        - Consignee `department` (Departamento) is required
+        - `province` (Provincia) and `district` (Distrito) for precise addressing
+        - `identificationType` should be `DNI` for Peruvian nationals
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/XClientSecretHeader'
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        description: Parcel declaration data for Peru
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParcelDeclareRequest'
+      responses:
+        '200':
+          description: Parcel declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParcelDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+      tags:
+        - Pre-Alert Peru
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+  /temu/chile:
+    post:
+      operationId: insertTemuPreAlertChile
+      summary: Temu Chile Declaration (Manifest + Parcels)
+      description: |
+        Receives a combined manifest + parcels declaration from Temu for Chile.
+        The manifest header and parcel details are validated and stored.
+        Parcels are processed asynchronously from the stored manifest file.
+      parameters:
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemuManifestRequest'
+      responses:
+        '200':
+          description: Accepted and persisted payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemuResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemuErrorResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemuErrorResponse'
+      tags:
+        - Temu
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+  /temu/pe:
+    post:
+      operationId: insertTemuPreAlertPeru
+      summary: Temu Peru Declaration (Manifest + Parcels)
+      description: |
+        Receives a combined manifest + parcels declaration from Temu for Peru.
+        The manifest header and parcel details are validated and stored.
+        Parcels are processed asynchronously from the stored manifest file.
+      parameters:
+        - $ref: '#/components/parameters/XTraceIdHeader'
+        - $ref: '#/components/parameters/XSpanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemuManifestRequest'
+      responses:
+        '200':
+          description: Accepted and persisted payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemuResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemuErrorResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemuErrorResponse'
+      tags:
+        - Temu
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/customs
+          description: Production API
+        - url: https://tech.andinolabs.com/customs
+          description: Staging API
+        - url: /customs
+          description: Local/Development API
+components:
+  schemas:
+    CainiaoDeclareRequest:
+      type: object
+      required:
+        - logistics_interface
+        - partner_code
+        - from_code
+        - msg_type
+        - data_digest
+        - msg_id
+      properties:
+        logistics_interface:
+          type: string
+          description: Stringified JSON containing the business message structure
+          example: '{"bizType":"CUSTOMS_SMALLPACKAGE_NOTIFY","bizKey":"CB10008309013654","formatType":"1","content":"eyJmcmVpZ2h0IjoiMC4yMDAwMCIsImd1aWQiOiIwNGFhNTFiNC0wMzY2LTQ0MjUtODU4My1jYWVlOGQxYmEyYWUiLCJhcHBUeXBlIjoiMSIsImFwcFRpbWUiOiIyMDI1MDEwNzE0NTgzMiswODAwIn0="}'
+        partner_code:
+          type: string
+          description: Cooperative partner code assigned by Cainiao
+          maxLength: 50
+          example: GATE_31389228
+        from_code:
+          type: string
+          description: Code corresponding to sender application
+          enum:
+            - gccs
+            - gccs-overseas
+          example: gccs
+        msg_type:
+          type: string
+          description: Message type (API identifier)
+          enum:
+            - GLOBAL_CUSTOMS_DECLARE_NOTIFY
+          example: GLOBAL_CUSTOMS_DECLARE_NOTIFY
+        data_digest:
+          type: string
+          description: MD5 hash of content + signature key, Base64 encoded
+          example: 7afpoaOT88UHvYgMij1lkA==
+        msg_id:
+          type: string
+          description: Message ID for data monitoring and message query
+          maxLength: 50
+          example: '1736234691571'
+    CainiaoStandardResponse:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Base64 encoded JSON containing the actual business response data
+          maxLength: 4096
+          example: eyJzdWNjZXNzIjp0cnVlLCJlcnJvQ29kZSI6IiIsImVycm9yTXNnIjoiIiwiY29wTm8iOiJDQjAwMDEyMzQ1Njc4OSIsIndheUJpbGxObyI6IlNOMDEyMzQ1Njc4OSJ9
+    ManifestDeclareRequest:
+      type: object
+      required:
+        - mawbNumber
+        - destinationCountryCode
+        - customsType
+        - transportType
+        - fromPortCode
+        - toPortCode
+        - totalPackages
+        - totalWeight
+        - totalValue
+        - currency
+        - shipperInfo
+        - itemList
+      properties:
+        mawbNumber:
+          type: string
+          description: Master Air Waybill Number
+          maxLength: 50
+          example: '2024001'
+        manifestNumber:
+          type: string
+          description: Unique manifest number
+          maxLength: 50
+          pattern: ^[A-Z0-9_-]+$
+          example: MANIFEST-2024-001
+        destinationCountryCode:
+          type: string
+          description: ISO 2-letter destination country code
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          example: PE
+        customsType:
+          type: string
+          description: Type of customs declaration
+          enum:
+            - INWARD
+            - OUTWARD
+          example: INWARD
+        customsClearanceMode:
+          type: string
+          description: Customs clearance mode
+          enum:
+            - STANDARD
+            - EXPRESS
+            - OVEASEAS_CCC_DIRECT
+          example: STANDARD
+        transportType:
+          type: string
+          description: Type of transport
+          enum:
+            - AIR
+            - SEA
+            - ROAD
+            - RAIL
+          example: AIR
+        transportNumber:
+          type: string
+          description: Transport number (flight, vessel, etc.)
+          maxLength: 20
+          example: 5Y8052
+        fromPortCode:
+          type: string
+          description: Origin port/airport code
+          maxLength: 8
+          example: HKG
+        toPortCode:
+          type: string
+          description: Destination port/airport code
+          maxLength: 8
+          example: LIM
+        eta:
+          type: string
+          format: date-time
+          description: Estimated time of arrival
+          example: '2024-01-20T14:30:00Z'
+        etd:
+          type: string
+          format: date-time
+          description: Estimated time of departure
+          example: '2024-01-18T08:15:00Z'
+        totalPackages:
+          type: integer
+          description: Total number of packages in manifest
+          minimum: 1
+          example: 1060
+        totalWeight:
+          type: string
+          description: Total weight
+          pattern: ^[0-9]+\.?[0-9]*$
+          example: '458.0'
+        totalValue:
+          type: number
+          description: Total declared value
+          minimum: 0
+          example: 15000
+        currency:
+          type: string
+          description: Currency code (ISO 4217)
+          maxLength: 3
+          pattern: ^[A-Z]{3}$
+          example: USD
+        clientReferenceNumber:
+          type: string
+          description: Client reference number
+          maxLength: 100
+        exportLicense:
+          type: string
+          description: Export license number
+          maxLength: 100
+        shipperInfo:
+          $ref: '#/components/schemas/ShipperInfo'
+        itemList:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ParcelInfo'
+    ManifestDeclareResponse:
+      type: object
+      required:
+        - success
+        - message
+        - mawbNumber
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Request processed successfully
+        manifestNumber:
+          type: string
+          example: MANIFEST-2024-001
+        mawbNumber:
+          type: string
+          example: '2024001'
+        totalParcels:
+          type: integer
+          minimum: 0
+          example: 3
+        processedParcels:
+          type: integer
+          minimum: 0
+          example: 3
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    GenericErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Request validation failed
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    ParcelDeclareRequest:
+      type: object
+      required:
+        - destinationCountryCode
+        - trackingId
+        - grossWeight
+        - declaredValue
+        - pieces
+        - currency
+        - clientTrackingNumber
+        - senderInfo
+        - consigneeInfo
+        - itemsList
+      properties:
+        destinationCountryCode:
+          type: string
+          description: ISO 2-letter destination country code
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          example: PE
+        trackingId:
+          type: string
+          description: Unique tracking identifier
+          maxLength: 100
+          pattern: ^[A-Z0-9_-]+$
+          example: SH-PE-123456789
+        grossWeight:
+          type: string
+          description: Gross weight
+          pattern: ^[0-9]+\.?[0-9]*$
+          example: '2.5'
+        netWeight:
+          type: string
+          description: Net weight
+          pattern: ^[0-9]+\.?[0-9]*$
+          example: '2.0'
+        weightUom:
+          type: string
+          description: Weight unit of measure (default KG)
+          enum:
+            - KG
+            - LB
+            - G
+            - OZ
+          default: KG
+          example: KG
+        declaredValue:
+          type: number
+          description: FOB value - the declared value of goods at origin port
+          minimum: 0.01
+          example: 25
+        freightPrice:
+          type: number
+          description: Freight cost
+          minimum: 0
+          example: 2.5
+        insurancePrice:
+          type: number
+          description: Insurance cost
+          minimum: 0
+          example: 0
+        pieces:
+          type: integer
+          description: Number of pieces
+          minimum: 1
+          example: 1
+        currency:
+          type: string
+          description: Currency code (ISO 4217)
+          maxLength: 3
+          pattern: ^[A-Z]{3}$
+          example: USD
+        dangerousGoods:
+          type: boolean
+          default: false
+        bigBagId:
+          type: string
+          description: Big bag identifier
+          maxLength: 50
+          example: BB-PE-001
+        batchNumber:
+          type: string
+          description: Batch number for grouping
+          maxLength: 50
+        barcode:
+          type: string
+          description: Parcel barcode
+          maxLength: 100
+        logisticsOrderCode:
+          type: string
+          maxLength: 50
+          example: LP00717258464258
+        lastmilePartnerCode:
+          type: string
+          maxLength: 50
+          example: DISTRIBUTOR_30710422
+        customsReference:
+          type: string
+          maxLength: 100
+        invoiceNumber:
+          type: string
+          maxLength: 100
+        clientTrackingNumber:
+          type: string
+          description: Client tracking number
+          maxLength: 100
+          example: AE-ORDER-001
+        senderInfo:
+          $ref: '#/components/schemas/SenderInfo'
+        consigneeInfo:
+          $ref: '#/components/schemas/ConsigneeInfo'
+        returnInfo:
+          $ref: '#/components/schemas/ReturnInfo'
+        itemsList:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ItemInfo'
+        uniqueReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueReference'
+    ParcelDeclareResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Request processed successfully
+        trackingId:
+          type: string
+          example: SH-PE-123456789
+        status:
+          type: string
+          enum:
+            - PROCESSED
+            - PENDING
+            - FAILED
+          example: PROCESSED
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    ListPreAlertSummariesSuccessResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreAlertSummaryResponseData'
+        meta:
+          $ref: '#/components/schemas/ListPreAlertSummariesMeta'
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+    TemuManifestRequest:
+      type: object
+      required:
+        - header
+        - detail
+      properties:
+        header:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemuHeader'
+        detail:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemuDetail'
+    TemuResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          nullable: true
+          example: Pre-alert accepted for processing
+        body:
+          type: string
+          example: PreAlert received successfully
+        status:
+          type: string
+          nullable: true
+          example: accepted
+        token:
+          type: string
+          nullable: true
+        statusCode:
+          type: number
+          example: 200
+    TemuErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          nullable: true
+          example: Validation failed
+        body:
+          type: string
+          example: Request validation failed
+        status:
+          type: string
+          nullable: true
+          example: error
+        token:
+          type: string
+          nullable: true
+        statusCode:
+          type: number
+          example: 400
+    NotificationAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the order snapshot request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
+    OrderSnapshotAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the order snapshot request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
+    WaybillAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the waybill request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
+    NotificationRequestBody:
+      type: object
+      required:
+        - channelInfo
+        - stencilId
+        - channelDataModel
+        - meta
+      properties:
+        contextId:
+          type: string
+          description: Unique identifier for the request context.
+        stencilId:
+          type: string
+          description: Identifier for the notification stencil/template.
+          enum:
+            - LOGIN_OTP
+        channelInfo:
+          $ref: '#/components/schemas/ChannelInfo'
+        channelDataModel:
+          oneOf:
+            - $ref: '#/components/schemas/EmailLoginOtpDataModel'
+          discriminator:
+            propertyName: stencilId
+            mapping:
+              LOGIN_OTP: '#/components/schemas/EmailLoginOtpDataModel'
+        meta:
+          $ref: '#/components/schemas/NotificationMeta'
+    OrderSnapshotRequestBody:
+      type: object
+      properties:
+        eventDateTime:
+          type: integer
+          description: Unix timestamp of the event
+          examples:
+            - 1701369600
+        orderId:
+          type: string
+          description: Unique identifier for the order. Identifier provided by Serhafen.
+          examples:
+            - ORD123456789
+        version:
+          type: integer
+          description: Version of the order snapshot, will help us to avoid processing older snapshots. If a snapshot with a lower version is received, it will be ignored. And if the version at system is not version - 1, we need to trigger an alert, and process the snapshot.
+          examples:
+            - 1
+        orderItems:
+          type: array
+          description: List of items included in the order
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        choreRequests:
+          type: array
+          description: List of chore requests associated with the order (cancellations, returns, etc.). We need to consider empty array if choreRequests field does not exist in the request.
+          items:
+            $ref: '#/components/schemas/ChoreRequest'
+        remarks:
+          type: string
+          description: Additional remarks or notes about the order
+      required:
+        - eventDateTime
+        - orderId
+        - version
+        - orderItems
+        - choreRequests
+        - remarks
+    WaybillRequestBody:
+      type: object
+      properties:
+        shipmentId:
+          type: string
+          description: Unique identifier for the shipment
+          examples:
+            - SHIP123456789
+        senderDetails:
+          $ref: '#/components/schemas/SenderDetails'
+        receiverDetails:
+          $ref: '#/components/schemas/ReceiverDetails'
+        orderDetails:
+          $ref: '#/components/schemas/OrderDetails'
+        parcelDetails:
+          $ref: '#/components/schemas/ParcelDetails'
+      required:
+        - shipmentId
+        - senderDetails
+        - receiverDetails
+        - orderDetails
+        - parcelDetails
+    ShipperInfo:
+      type: object
+      required:
+        - name
+        - address
+        - city
+        - country
+        - email
+        - phone
+      properties:
+        name:
+          type: string
+          description: Full name of the shipper
+          maxLength: 255
+          example: Yang Ke
+        address:
+          type: string
+          description: Full address of the shipper
+          maxLength: 1000
+          example: Zhejiang Province, Shangyu District, Tangpu Town, Room 301, Building A
+        city:
+          type: string
+          description: City of the shipper
+          maxLength: 100
+          example: Shaoxing
+        country:
+          type: string
+          description: ISO 2-letter country code
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          example: CN
+        state:
+          type: string
+          description: State or province
+          maxLength: 100
+          example: Zhejiang Province
+        street:
+          type: string
+          description: Street address
+          maxLength: 500
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: shipper@example.com
+        phone:
+          type: string
+          description: Mobile phone number
+          maxLength: 50
+          example: '+8615137736988'
+        companyName:
+          type: string
+          maxLength: 255
+        taxId:
+          type: string
+          description: Tax identification number
+          maxLength: 50
+        uniqueReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueReference'
+    ParcelInfo:
+      type: object
+      required:
+        - trackingId
+        - bigBagNumber
+      properties:
+        trackingId:
+          type: string
+          description: Tracking identifier
+          maxLength: 100
+          pattern: ^[A-Z0-9_-]+$
+          example: WYB3474845631
+        bigBagNumber:
+          type: string
+          description: Big bag number
+          maxLength: 50
+          example: BIGBAG001
+    ValidationError:
+      type: object
+      required:
+        - field
+        - error
+        - code
+      properties:
+        field:
+          type: string
+          example: manifestNumber
+        error:
+          type: string
+          example: Manifest number is required
+        code:
+          type: string
+          example: REQUIRED
+    SenderInfo:
+      type: object
+      required:
+        - name
+        - address
+        - city
+        - country
+        - state
+        - zipCode
+        - email
+        - phone
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: Yang Ke
+        address:
+          type: string
+          maxLength: 1000
+        city:
+          type: string
+          maxLength: 100
+          example: Shaoxing
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          example: CN
+        state:
+          type: string
+          maxLength: 100
+          example: Zhejiang Province
+        zipCode:
+          type: string
+          maxLength: 20
+          example: '312000'
+        street:
+          type: string
+          maxLength: 500
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 50
+          example: '15137736988'
+        companyName:
+          type: string
+          maxLength: 255
+        taxId:
+          type: string
+          maxLength: 50
+        uniqueReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueReference'
+    ConsigneeInfo:
+      type: object
+      required:
+        - name
+        - address
+        - city
+        - country
+        - department
+        - province
+        - district
+        - zipCode
+        - email
+        - phone
+        - identificationType
+        - identificationNumber
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: Juan Pérez García
+        address:
+          type: string
+          description: Full address of the consignee
+          maxLength: 1000
+          example: Calle Mercaderes 123, Cercado, Arequipa
+        city:
+          type: string
+          maxLength: 100
+          example: Arequipa
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          example: PE
+        department:
+          type: string
+          description: Peruvian department (Departamento)
+          maxLength: 100
+          example: Arequipa
+        province:
+          type: string
+          description: Peruvian province (Provincia)
+          maxLength: 100
+          example: Arequipa
+        district:
+          type: string
+          description: Peruvian district (Distrito)
+          maxLength: 100
+          example: Cercado
+        zipCode:
+          type: string
+          maxLength: 20
+          example: '04001'
+        street:
+          type: string
+          maxLength: 500
+          example: Calle Mercaderes 123
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: juan.perez@example.com
+        phone:
+          type: string
+          maxLength: 50
+          example: '+51987654321'
+        identificationType:
+          type: string
+          description: Type of identification document. DNI is standard for Peruvian nationals.
+          enum:
+            - DNI
+            - PASSPORT
+            - NATIONAL_ID
+            - DRIVER_LICENSE
+            - CE
+          example: DNI
+        identificationNumber:
+          type: string
+          description: Identification number (e.g. DNI 8 digits)
+          maxLength: 100
+          example: '12345678'
+        uniqueReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueReference'
+    ReturnInfo:
+      type: object
+      required:
+        - name
+        - address
+        - city
+        - country
+        - department
+        - zipCode
+        - email
+        - phone
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 1000
+        city:
+          type: string
+          maxLength: 100
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+        department:
+          type: string
+          description: Peruvian department (Departamento)
+          maxLength: 100
+        province:
+          type: string
+          description: Peruvian province (Provincia)
+          maxLength: 100
+        district:
+          type: string
+          description: Peruvian district (Distrito)
+          maxLength: 100
+        zipCode:
+          type: string
+          maxLength: 20
+        street:
+          type: string
+          maxLength: 500
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 50
+        uniqueReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueReference'
+    ItemInfo:
+      type: object
+      required:
+        - itemNumber
+        - itemName
+        - quantity
+        - unitPrice
+        - totalPrice
+        - currency
+      properties:
+        itemNumber:
+          type: string
+          description: Item identifier
+          maxLength: 100
+          example: 10050058244557952
+        itemName:
+          type: string
+          maxLength: 255
+          example: Smartphone Case
+        barCode:
+          type: string
+          maxLength: 50
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+        unitPrice:
+          type: number
+          minimum: 0
+          example: 25
+        totalPrice:
+          type: number
+          minimum: 0
+          example: 25
+        currency:
+          type: string
+          maxLength: 3
+          pattern: ^[A-Z]{3}$
+          example: USD
+        hsCode:
+          type: string
+          description: HS code
+          maxLength: 20
+          example: '3926909090'
+        country:
+          type: string
+          description: Country of origin
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+        productUrl:
+          type: string
+          maxLength: 500
+        uniqueReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueReference'
+    UniqueReference:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    PreAlertSummaryResponseData:
+      type: object
+      required:
+        - preAlertId
+        - clientCode
+        - clientName
+        - countryCode
+        - status
+        - mawbNumber
+        - manifestNumber
+        - totalParcels
+        - downloadUrl
+        - createdAt
+        - updatedAt
+      properties:
+        preAlertId:
+          type: string
+          format: uuid
+          description: Unique identifier for the pre-alert summary record.
+          example: 123e4567-e89b-12d3-a456-426614174000
+        clientCode:
+          type: string
+          description: Client identifier.
+          example: CHILE_EXPRESS
+        clientName:
+          type: string
+          description: Client name.
+          example: Chile Express
+        countryCode:
+          type: string
+          description: Country code.
+          example: AG
+        status:
+          type: string
+          description: Status of the pre-alert.
+          example: COMPLETED
+        mawbNumber:
+          type: string
+          description: MAWB number.
+          example: MAWB-2025-001234
+        manifestNumber:
+          type: string
+          description: Manifest number.
+          example: MAN-2025-567890
+        totalParcels:
+          type: integer
+          description: Total parcels in the manifest.
+          example: 150
+        downloadUrl:
+          type: string
+          format: uri
+          description: S3 pre-signed URL for the manifest declare file.
+          example: https://pre-alert-data.s3.amazonaws.com/manifests/2025/12/manifest-001234.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600
+        errorMessage:
+          type: string
+          description: Error message. Only present when status is FAILED.
+          example: 'Validation failed: Missing required field ''consigneeAddress'''
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp.
+          example: '2025-12-11T10:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Record last update timestamp.
+          example: '2025-12-11T10:30:00Z'
+    ListPreAlertSummariesMeta:
+      type: object
+      required:
+        - page
+        - pageSize
+        - hasNextPage
+        - hasPreviousPage
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+    ErrorObject:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: ERROR_CODE
+        message:
+          type: string
+          example: ERROR_MESSAGE
+        details:
+          type: object
+          properties:
+            field:
+              type: string
+              example: ERROR_FIELD
+            error:
+              type: string
+              example: ERROR_MESSAGE
+            code:
+              type: string
+              example: ERROR_CODE
+          required:
+            - field
+            - error
+            - code
+    TemuHeader:
+      type: object
+      required:
+        - mawbMasterPlaceTransmission
+        - mawbManifestNumber
+        - mawbFlightTakeoffDate
+        - mawbFlightArrivalDate
+        - mawbHawbCount
+      properties:
+        mawbMasterDate:
+          type: string
+          format: date-time
+        mawbMasterPlaceTransmission:
+          type: string
+        mawbDateInternment:
+          type: string
+          format: date-time
+        mawbManifestNumber:
+          type: string
+        mawbManifestType:
+          type: string
+        mawbViaTransport:
+          type: string
+        mawbFlightTakeoffDate:
+          type: string
+          format: date-time
+        mawbFlightArrivalDate:
+          type: string
+          format: date-time
+        mawbHawbCount:
+          type: number
+          minimum: 0
+        mawbDeclaredWeight:
+          type: number
+          minimum: 0
+        mawbVerifiedWeight:
+          type: number
+          minimum: 0
+    TemuDetail:
+      type: object
+      required:
+        - hawbTrackingId
+        - hawbShipperName
+        - hawbShipperCity
+        - hawbShipperCountry
+        - hawbPieces
+        - hawbAddresseeName
+        - hawbAddresseeAddress
+        - hawbAddresseeRegion
+        - hawbAddresseeCommune
+        - hawbAddresseeCountry
+        - hawbAddresseePhone
+        - hawbAddresseeRut
+        - hawbDescriptionContent
+        - hawbGrossWeight
+        - hawbIdExternal
+        - hawbBagId
+        - hawbMasterCode
+        - itemList
+      properties:
+        hawbTrackingId:
+          type: string
+        hawbShipperName:
+          type: string
+        hawbShipperCity:
+          type: string
+        hawbShipperCountry:
+          type: string
+        hawbPieces:
+          type: integer
+        hawbBarcode:
+          type: string
+        hawbAddresseeName:
+          type: string
+        hawbAddresseeAddress:
+          type: string
+        hawbAddresseeZipCode:
+          type: string
+        hawbAddresseeRegion:
+          type: string
+        hawbAddresseeCity:
+          type: string
+        hawbAddresseeCommune:
+          type: string
+          description: Comuna
+        hawbAddresseeDistrict:
+          type: string
+          description: Distrito/District
+        hawbAddresseeProvince:
+          type: string
+          description: Provincia/Province
+        hawbAddresseeDepartment:
+          type: string
+          description: Departamento/Department
+        hawbAddresseeCountry:
+          type: string
+        hawbAddresseePhone:
+          type: string
+        hawbAddresseeEmail:
+          type: string
+          format: email
+        hawbAddresseeRut:
+          type: string
+        hawbDescriptionContent:
+          type: string
+        hawbWarning:
+          type: string
+        hawbValueUsd:
+          description: Declared value in USD (accepts number or string)
+          oneOf:
+            - type: number
+            - type: string
+        hawbFobValueUsd:
+          description: FOB value in USD (accepts number or string)
+          oneOf:
+            - type: number
+            - type: string
+        hawbCifValueUsd:
+          description: CIF value in USD (accepts number or string)
+          oneOf:
+            - type: number
+            - type: string
+        taxCompanyId:
+          type: string
+          description: SII ID (registered ID)
+        taxCompanyName:
+          type: string
+          description: Name of the company (as per SII)
+        taxHasBeenPaid:
+          type: string
+          description: Y or N
+        hawbGrossWeight:
+          description: Gross weight (accepts number or string)
+          oneOf:
+            - type: number
+            - type: string
+        hawbWeightDimensional:
+          type: number
+          minimum: 0
+        hawbFreightValue:
+          type: number
+          minimum: 0
+        hawbIdExternal:
+          type: string
+        hawbBagId:
+          type: string
+        hawbBatchNumber:
+          type: string
+        hawbMasterCode:
+          type: string
+        hawbInsurance:
+          type: number
+          minimum: 0
+        itemList:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemuItem'
+        token:
+          type: string
+          description: Token for billing/partner association
+    ChannelInfo:
+      type: object
+      required:
+        - type
+        - from
+        - to
+      properties:
+        type:
+          type: string
+          enum:
+            - EMAIL
+        to:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
+        from:
+          $ref: '#/components/schemas/Recipient'
+    EmailLoginOtpDataModel:
+      type: object
+      description: Data model for LOGIN_OTP stencil when using EMAIL channel.
+      required:
+        - otp
+        - time
+      properties:
+        otp:
+          type: string
+          description: One-time password to be sent.
+          examples:
+            - '123456'
+        time:
+          type: string
+          description: Time validity for the OTP.
+          examples:
+            - 10 minutes
+    NotificationMeta:
+      type: object
+      required:
+        - otpGeneratedTime
+        - userRequestTime
+      properties:
+        otpGeneratedTime:
+          type: integer
+          examples:
+            - 1633024800
+          format: long
+        userRequestTime:
+          type: integer
+          examples:
+            - 1633024860
+          format: long
+    OrderItem:
+      type: object
+      properties:
+        orderItemId:
+          type: string
+          description: Unique identifier for the order item. Identifier provided by Serhafen, Seller order line item
+        status:
+          type: array
+          description: List of status entries for this order item, tracking its progression through the fulfillment process
+          items:
+            $ref: '#/components/schemas/ItemStatus'
+      required:
+        - orderItemId
+        - status
+    ChoreRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of chore request being made
+          enum:
+            - CANCEL
+            - RETURN_COMPLETE_NOTIFY
+        choreRequestId:
+          type: string
+          description: Unique identifier of the request
+        flowType:
+          type: string
+          description: Origin of the chore request (customer-initiated or seller-initiated)
+          enum:
+            - CUSTOMER_CANCEL
+            - CUSTOMER_RETURN
+            - SELLER_CANCEL
+        orderItems:
+          type: array
+          description: List of order items affected by this chore request
+          items:
+            $ref: '#/components/schemas/OrderItem'
+      required:
+        - type
+        - choreRequestId
+        - flowType
+        - orderItems
+    SenderDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the sender
+          examples:
+            - SENDER001
+        locationId:
+          type: string
+          description: Location identifier for the sender's address
+          examples:
+            - LOC001
+      required:
+        - id
+        - locationId
+        - collectionDetails
+    ReceiverDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the receiver
+          examples:
+            - RECEIVER001
+        locationId:
+          type: string
+          description: Location identifier for the receiver's address
+          examples:
+            - LOC002
+      required:
+        - id
+        - locationId
+    OrderDetails:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Unique identifier for the order associated with this shipment
+          examples:
+            - ORD123456789
+        items:
+          type: array
+          description: List of items included in the shipment
+          items:
+            $ref: '#/components/schemas/ShipmentItem'
+      required:
+        - orderId
+        - items
+    ParcelDetails:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          description: Total number of parcels in the shipment
+          minimum: 1
+          examples:
+            - 3
+        totalWeight:
+          type: number
+          description: Total weight of all parcels in kilograms
+          minimum: 0
+          examples:
+            - 15.5
+            - 22.3
+        totalVolume:
+          type: number
+          description: Total volume of all parcels in cubic meters
+          minimum: 0
+          examples:
+            - 0.5
+            - 1.2
+        parcels:
+          type: array
+          description: List of individual parcels in the shipment
+          items:
+            $ref: '#/components/schemas/Parcel'
+      required:
+        - quantity
+        - totalWeight
+        - totalVolume
+        - parcels
+    TemuItem:
+      type: object
+      required:
+        - country
+        - gnum
+        - hsCode
+        - itemName
+        - currency
+        - qty
+        - totalPrice
+      properties:
+        country:
+          type: string
+          description: Country of destination
+          example: PE
+        gnum:
+          type: integer
+          description: Autoincrementing item number
+          minimum: 1
+        hsCode:
+          type: string
+          description: HS code
+        itemName:
+          type: string
+          description: Item name
+        currency:
+          type: string
+          description: Currency (ISO 4217)
+          pattern: ^[A-Z]{3}$
+          example: USD
+        price:
+          type: number
+          description: Unit price
+          minimum: 0
+        qty:
+          type: number
+          description: Quantity
+          minimum: 1
+        totalPrice:
+          type: number
+          description: Total price
+          minimum: 0
+        FOB:
+          type: number
+          description: FOB value
+          minimum: 0
+        CIF:
+          type: number
+          description: CIF value
+          minimum: 0
+        productUrl:
+          type: string
+    Recipient:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the recipient.
+          examples:
+            - John Doe
+        address:
+          type: string
+          description: Contact address - email, phone number, or WhatsApp number depending on channel type.
+          examples:
+            - john.doe@example.com
+    ItemStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Current status of the order item in the fulfillment lifecycle
+          enum:
+            - APPROVED
+            - RESERVED
+            - READY_TO_SHIP
+            - SHIPPED
+            - OUT_FOR_DELIVERY
+            - DELIVERED
+            - CANCELLED
+        quantity:
+          type: integer
+          description: Number of items in this status
+          minimum: 1
+          examples:
+            - 2
+            - 4
+        trackingId:
+          type: string
+          description: Tracking identifier for shipment
+          examples:
+            - SH00123456789
+      required:
+        - status
+        - quantity
+    ShipmentItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+          description: Unique identifier for the item
+          examples:
+            - ITEM001
+        quantity:
+          type: integer
+          description: Number of units of this item in the shipment
+          minimum: 1
+          examples:
+            - 2
+            - 5
+      required:
+        - itemId
+        - quantity
+    Parcel:
+      type: object
+      required:
+        - IOSSNo
+        - goodsList
+      properties:
+        weight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Weight'
+        weightUnit:
+          type: string
+          description: '**[OPTIONAL]** Weight unit'
+        suggestedWeight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Suggested weight'
+        price:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Price'
+        priceUnit:
+          type: string
+          description: '**[OPTIONAL]** Price unit'
+        priceCurrency:
+          type: string
+          description: '**[OPTIONAL]** Currency code'
+        length:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Length'
+        width:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Width'
+        height:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Height'
+        size:
+          type: string
+          description: '**[OPTIONAL]** Size description'
+        volume:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Volume'
+        volumeUnit:
+          type: string
+          description: '**[OPTIONAL]** Volume unit'
+        parcelQuantity:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Parcel quantity'
+        splitNum:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Split number'
+        masterID:
+          type: string
+          description: '**[OPTIONAL]** Master ID'
+        bigBagID:
+          type: string
+          description: '**[OPTIONAL]** Big bag ID'
+        bigBagWeight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Big bag weight'
+        bigBagWeightUnit:
+          type: string
+          description: '**[OPTIONAL]** Big bag weight unit'
+        asnID:
+          type: string
+          description: '**[OPTIONAL]** ASN ID'
+        IOSSNo:
+          type: string
+          description: '**[REQUIRED]** IOSS registration number'
+        dimensionUnit:
+          type: string
+          description: '**[OPTIONAL]** Dimension unit'
+        goodsList:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoodsItem'
+          description: '**[REQUIRED]** List of goods'
+    GoodsItem:
+      type: object
+      properties:
+        productID:
+          type: string
+          description: '**[OPTIONAL]** Product ID'
+        skuID:
+          type: string
+          description: '**[OPTIONAL]** SKU ID'
+        name:
+          type: string
+          description: '**[OPTIONAL]** Product name'
+        cnName:
+          type: string
+          description: '**[OPTIONAL]** Chinese name'
+        suggestedENName:
+          type: string
+          description: '**[OPTIONAL]** Suggested English name'
+        suggestedCNName:
+          type: string
+          description: '**[OPTIONAL]** Suggested Chinese name'
+        quantity:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Quantity (string or number)'
+        weight:
+          oneOf:
+            - type: string
+            - type: number
+          description: '**[OPTIONAL]** Weight (string or number)'
+        weightUnit:
+          type: string
+          description: '**[OPTIONAL]** Weight unit (e.g., ''g'', ''kg'')'
+        priceUnit:
+          type: string
+          description: '**[OPTIONAL]** Price unit (e.g., ''CENT'', ''USD'')'
+        priceCurrency:
+          type: string
+          description: '**[OPTIONAL]** Currency code'
+        hsCode:
+          type: string
+          description: '**[OPTIONAL]** HS code for customs'
+        categoryID:
+          type: string
+          description: '**[OPTIONAL]** Category ID'
+        categoryName:
+          type: string
+          description: '**[OPTIONAL]** Category name'
+        categoryCNName:
+          type: string
+          description: '**[OPTIONAL]** Chinese category name'
+        categoryFeature:
+          type: string
+          description: '**[OPTIONAL]** Category feature'
+        productCategory:
+          type: string
+          description: '**[OPTIONAL]** Product category'
+        declarePrice:
+          type: string
+          description: '**[OPTIONAL]** Declared price'
+        duty:
+          type: string
+          description: '**[OPTIONAL]** Duty amount'
+        url:
+          type: string
+          description: '**[OPTIONAL]** Product URL'
+        itemDeclarePrice:
+          type: string
+          description: '**[OPTIONAL]** Item declared price'
+        itemDuty:
+          type: string
+          description: '**[OPTIONAL]** Item duty'
+        extension:
+          type: string
+          description: '**[OPTIONAL]** Extension data (JSON string)'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: api-key
+      description: API key for authentication
+    ExecutorAuth:
+      type: apiKey
+      in: header
+      name: executor-name
+      description: Executor name for partner webhooks (DNT, SAVAR, ENVIAME, IP, URP)
+  responses:
+    NotificationSuccess:
+      description: Notification sent successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationAcceptedResponse'
+    ValidationError:
+      description: Invalid request or missing parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized - Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 401
+            message: Unauthorized - Invalid or missing API key
+            error: Unauthorized
+    ServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    OrderSnapshotAccepted:
+      description: Order snapshot accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
+    WaybillAccepted:
+      description: Waybill accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaybillAcceptedResponse'
+    BadRequest:
+      description: Bad Request - Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 400
+            message: Validation failed
+            error: Bad Request
+            details:
+              - path:
+                  - destinationCountry
+                message: 'Must be one of: CL, PE, AR, US'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 500
+            message: An unexpected error occurred
+            error: Internal Server Error
+  requestBodies:
+    NotificationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationRequestBody'
+    OrderSnapshotRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OrderSnapshotRequestBody'
+    WaybillRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaybillRequestBody'
+  parameters:
+    Authorization:
+      name: Authorization
+      in: header
+      required: true
+      description: Bearer token for authentication.
+      schema:
+        type: string
+        pattern: ^Bearer\s[a-zA-Z0-9\-._~+/]+=*$
+        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    ContentType:
+      name: Content-Type
+      in: header
+      required: true
+      description: Content type of the request body.
+      schema:
+        type: string
+        enum:
+          - application/json
+    TraceParent:
+      name: traceparent
+      in: header
+      required: true
+      description: Traceparent header for distributed tracing.
+      schema:
+        type: string
+        pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    CaseStyle:
+      name: X-Case-Style
+      in: header
+      required: false
+      description: Preferred property naming convention for the response. Use 'camel' for camelCase or 'snake' for snake_case. Defaults to camelCase if not specified.
+      schema:
+        type: string
+        enum:
+          - camel
+          - snake
+        default: camel
+        examples:
+          - camel
+          - snake
+    XTraceIdHeader:
+      name: X-Trace-Id
+      in: header
+      required: false
+      description: Unique trace identifier for distributed tracing
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+        example: 550e8400-e29b-41d4-a716-446655440000
+    XSpanIdHeader:
+      name: X-Span-Id
+      in: header
+      required: false
+      description: Unique span identifier for distributed tracing
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{16}$
+        example: 1234567890abcdef
+    TraceparentHeader:
+      name: traceparent
+      in: header
+      required: false
+      description: W3C Trace Context traceparent header for distributed tracing
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    XClientCodeHeader:
+      name: x-client-code
+      in: header
+      required: true
+      description: Client identifier for authentication and routing
+      schema:
+        type: string
+        pattern: ^[A-Z]{2}$
+        example: CE
+    XClientSecretHeader:
+      name: x-client-secret
+      in: header
+      required: false
+      description: Client secret for authentication
+      schema:
+        type: string
+        example: client_secret_12345
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      description: Authorization header containing bearer token
+      schema:
+        type: string
+        example: Bearer <token>
+tags:
+  - name: Cainiao Integration
+    description: Cainiao Integration operations
+  - name: Pre-Alert Chile
+    description: Pre-Alert Chile operations
+  - name: Pre-Alert Management
+    description: Pre-Alert Management operations
+  - name: Pre-Alert Peru
+    description: Pre-Alert Peru operations
+  - name: Temu
+    description: Temu operations
+security:
+  - ApiKeyAuth: []

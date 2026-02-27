@@ -45,16 +45,16 @@ const config: Config = {
             {
                 specs: [
                     {
-                        spec: 'specs/customs-api.openapi.yaml',
-                        route: '/api/customs',
-                    },
-                    {
                         spec: 'specs/lastmile-api.openapi.yaml',
                         route: '/api/lastmile',
                     },
                     {
                         spec: 'specs/cross-border-api.openapi.yaml',
                         route: '/api/cbt',
+                    },
+                    {
+                        spec: 'specs/pre-alert-api.openapi.yaml',
+                        route: '/api/pre-alert',
                     }
                 ],
                 theme: {
@@ -82,16 +82,16 @@ const config: Config = {
                     position: 'left',
                     items: [
                         {
-                            to: '/api/customs',
-                            label: 'Customs API',
-                        },
-                        {
                             to: '/api/lastmile',
                             label: 'Lastmile API',
                         },
                         {
                             to: '/api/cbt',
                             label: 'Cross Border API',
+                        },
+                        {
+                            to: '/api/pre-alert',
+                            label: 'Pre-Alert API',
                         }
                     ],
                 },
@@ -104,16 +104,16 @@ const config: Config = {
                     title: 'API Documentation',
                     items: [
                         {
-                            label: 'Customs API',
-                            to: '/api/customs',
-                        },
-                        {
                             label: 'Lastmile API',
                             to: '/api/lastmile',
                         },
                         {
                             label: 'Cross Border Trade API',
                             to: '/api/cbt',
+                        },
+                        {
+                            label: 'Pre-Alert API',
+                            to: '/api/pre-alert',
                         }
                     ],
                 },

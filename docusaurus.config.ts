@@ -55,6 +55,14 @@ const config: Config = {
                     {
                         spec: 'specs/pre-alert-api.openapi.yaml',
                         route: '/api/pre-alert',
+                    },
+                    {
+                        spec: 'specs/temu-api.openapi.yaml',
+                        route: '/api/temu',
+                    },
+                    {
+                        spec: 'specs/cainiao-api.openapi.yaml',
+                        route: '/api/cainiao',
                     }
                 ],
                 theme: {
@@ -92,6 +100,14 @@ const config: Config = {
                         {
                             to: '/api/pre-alert',
                             label: 'Pre-Alert API',
+                        },
+                        {
+                            to: '/api/temu',
+                            label: 'Temu API',
+                        },
+                        {
+                            to: '/api/cainiao',
+                            label: 'Cainiao API',
                         }
                     ],
                 },
@@ -114,6 +130,14 @@ const config: Config = {
                         {
                             label: 'Pre-Alert API',
                             to: '/api/pre-alert',
+                        },
+                        {
+                            label: 'Temu API',
+                            to: '/api/temu',
+                        },
+                        {
+                            label: 'Cainiao API',
+                            to: '/api/cainiao',
                         }
                     ],
                 },

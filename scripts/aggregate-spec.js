@@ -56,10 +56,12 @@ const CONFIG = {
             specsPath: 'specs',
         }
     ],
-    audiences: ['lastmile', 'cross-border', 'pre-alert'],
+    audiences: ['lastmile', 'cross-border', 'pre-alert', 'temu', 'cainiao'],
     audienceDescriptions: {
         'lastmile': 'Public APIs for lastmile integration',
         'pre-alert': 'Public APIs for pre-alert processing',
+        'temu': 'Public APIs for Temu pre-alert integration',
+        'cainiao': 'Public APIs for Cainiao pre-alert integration',
         'cross-border': `Public APIs for cross-border integration
 
 **Flexible Property Naming:** This API supports both camelCase and snake_case for property names in requests and responses. 

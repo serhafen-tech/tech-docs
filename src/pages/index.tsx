@@ -35,6 +35,18 @@ function HomepageHeader() {
                         style={{marginLeft: '1rem'}}>
                         Pre-Alert API Documentation
                     </Link>
+                    <Link
+                        className="button button--secondary button--lg"
+                        to="/api/temu"
+                        style={{marginLeft: '1rem'}}>
+                        Temu API Documentation
+                    </Link>
+                    <Link
+                        className="button button--secondary button--lg"
+                        to="/api/cainiao"
+                        style={{marginLeft: '1rem'}}>
+                        Cainiao API Documentation
+                    </Link>
                 </div>
             </div>
         </header>

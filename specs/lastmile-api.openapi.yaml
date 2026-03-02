@@ -587,6 +587,124 @@ paths:
           description: Staging API
         - url: /last-mile
           description: Local/Development API
+  /package-status:
+    post:
+      operationId: updatePackageStatus
+      summary: Update package status (Partner Webhook)
+      description: |
+        **FOR LAST-MILE PARTNERS ONLY**
+
+        This endpoint receives status updates from last-mile delivery partners.
+
+        **Authentication Requirements:**
+        - `api-key` header: Partner-specific API key
+        - `executor-name` header: Partner executor code (DNT, SAVAR, ENVIAME, etc.)
+
+        **Process Flow:**
+        1. Validate API key and executor name
+        2. Map partner status code to canonical status
+        3. Update package in database
+        4. Create activity log entry
+        5. Trigger client notifications (if configured)
+
+        **Status Mapping:**
+        Each partner has unique status codes that are mapped to Serhafen's canonical codes.
+        Contact technical support for partner-specific status code mapping documentation.
+      security:
+        - ApiKeyAuth: []
+        - ExecutorAuth: []
+      requestBody:
+        required: true
+        description: Package status update from partner
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageStatusUpdate'
+            examples:
+              outForDelivery:
+                summary: Package out for delivery
+                value:
+                  tracking_number: SH-PE-123456789
+                  carrier_tracking_number: DNT-PE-789456123
+                  carrier_name: Dinet
+                  status_id: DNT-100
+                  status_name: En ruta de entrega
+                  status_information: Paquete en camión de reparto
+                  status_date: '2026-02-09 16:00:00'
+                  tracking_url: https://tracking.dinet.pe/DNT-PE-789456123
+              delivered:
+                summary: Package delivered
+                value:
+                  tracking_number: SH-PE-123456789
+                  carrier_tracking_number: DNT-PE-789456123
+                  status_id: DNT-250
+                  status_name: Entregado
+                  status_information: Entregado a destinatario - Juan Pérez
+                  status_date: '2026-02-09 18:30:00'
+              exception:
+                summary: Delivery exception
+                value:
+                  tracking_number: SH-PE-123456789
+                  status_id: DNT-300
+                  status_name: No se pudo entregar
+                  status_information: Destinatario ausente - Reintento programado
+                  status_date: '2026-02-09 17:00:00'
+      responses:
+        '200':
+          description: Package status updated successfully
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Package status updated successfully
+        '400':
+          description: Invalid request data or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingField:
+                  summary: Missing required field
+                  value:
+                    statusCode: 400
+                    message: Invalid Package Status Update Data
+                    error: Bad Request
+                    details:
+                      - path:
+                          - tracking_number
+                        message: Required field missing
+        '401':
+          description: Missing or invalid API key / executor name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 401
+                message: Unauthorized - Invalid API key or executor name
+                error: Unauthorized
+        '404':
+          description: Package not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 404
+                message: 'Package not found: SH-PE-123456789'
+                error: Not Found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - Partner Integration
+      servers:
+        - url: https://api.serhafen-net.andinolabs.tech/last-mile
+          description: Production API
+        - url: https://tech.andinolabs.com/last-mile
+          description: Staging API
+        - url: /last-mile
+          description: Local/Development API
 components:
   schemas:
     CreateShipmentRequest:
@@ -904,6 +1022,64 @@ components:
           description: Raw executor status updates (if detailedExecInfo=true)
           items:
             $ref: '#/components/schemas/ExecutorStatusUpdate'
+    PackageStatusUpdate:
+      type: object
+      required:
+        - tracking_number
+        - status_id
+        - status_name
+        - status_date
+      properties:
+        identifier:
+          type: integer
+          description: Shipment identifier (optional)
+          example: 1
+        order_number:
+          type: string
+          description: Order number
+          example: '9181875522'
+        tracking_number:
+          type: string
+          description: Serhafen tracking number
+          example: SH-PE-123456789
+        carrier_tracking_number:
+          type: string
+          description: Partner tracking number
+          example: DNT-PE-789456123
+        carrier_name:
+          type: string
+          description: Carrier/partner name
+          example: Dinet
+        carrier_code:
+          type: string
+          description: Carrier code
+          example: DNT
+        dead_line_date:
+          type: string
+          format: date-time
+          description: Delivery deadline
+          example: '2026-02-10T18:00:00Z'
+        status_id:
+          type: string
+          description: Partner-specific status code (REQUIRED)
+          example: DNT-100
+        status_name:
+          type: string
+          description: Human-readable status description
+          example: En ruta de entrega
+        status_information:
+          type: string
+          description: Additional status details
+          example: Paquete en camión de reparto
+        status_date:
+          type: string
+          description: Status timestamp (format yyyy-MM-dd HH:mm:ss)
+          example: '2026-02-09 16:00:00'
+        tracking_url:
+          type: string
+          format: uri
+          description: Partner tracking URL
+          example: https://tracking.dinet.pe/DNT-PE-789456123
     Address:
       type: object
       required:
@@ -1410,5 +1586,7 @@ tags:
     description: Tracking operations
   - name: ASN Integration
     description: ASN Integration operations
+  - name: Partner Integration
+    description: Partner Integration operations
 security:
   - ApiKeyAuth: []

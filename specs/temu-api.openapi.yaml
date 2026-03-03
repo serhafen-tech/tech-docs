@@ -7,7 +7,7 @@ info:
     name: Platform Support
     email: platform-support@serhafen.com
 paths:
-  /temu/chile:
+  /temu/cl:
     post:
       operationId: insertTemuPreAlertChile
       summary: Temu Chile Declaration (Manifest + Parcels)
@@ -207,6 +207,25 @@ components:
           examples:
             - REQ0001
             - REQ0002
+    SellerProfileAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the seller profile request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
     WaybillAcceptedResponse:
       type: object
       required:
@@ -291,6 +310,85 @@ components:
         - orderItems
         - choreRequests
         - remarks
+    CreateSellerRequestBody:
+      type: object
+      properties:
+        actionType:
+          type: string
+          description: Type of action being performed on the seller profile
+          examples:
+            - CREATE
+            - UPDATE
+        sellerId:
+          type: string
+          description: Unique identifier for the seller
+          examples:
+            - SELLER001
+            - SELLER002
+        email:
+          type: string
+          format: email
+          description: Email address of the seller
+          examples:
+            - seller@example.com
+        phone:
+          type: string
+          description: Phone number of the seller
+          examples:
+            - '+1234567890'
+        displayName:
+          type: string
+          description: Display name for the seller profile
+          examples:
+            - ABC Trading Co.
+        description:
+          type: string
+          description: Description of the seller or business
+          examples:
+            - Premium electronics retailer
+        sellerName:
+          type: string
+          description: Official name of the seller
+          examples:
+            - ABC Trading Company Ltd
+        status:
+          type: string
+          description: Current status of the seller profile
+          enum:
+            - ACCEPTED
+            - ACTIVE
+            - INACTIVE
+            - PENDING
+            - SUSPENDED
+          examples:
+            - ACTIVE
+        businessDetails:
+          $ref: '#/components/schemas/BusinessDetails'
+        bankDetails:
+          $ref: '#/components/schemas/BankDetails'
+        createdAt:
+          type: string
+          description: Timestamp when the seller profile was created
+          examples:
+            - '1709287800'
+        updatedAt:
+          type: string
+          description: Timestamp when the seller profile was last updated
+          examples:
+            - '1709460000'
+      required:
+        - actionType
+        - sellerId
+        - email
+        - phone
+        - displayName
+        - description
+        - sellerName
+        - status
+        - businessDetails
+        - bankDetails
+        - createdAt
+        - updatedAt
     WaybillRequestBody:
       type: object
       properties:
@@ -611,6 +709,104 @@ components:
         - choreRequestId
         - flowType
         - orderItems
+    BusinessDetails:
+      type: object
+      properties:
+        directorName:
+          type: string
+          description: Full name of the business director
+          examples:
+            - John Smith
+        directorMail:
+          type: string
+          format: email
+          description: Email address of the business director
+          examples:
+            - john.smith@example.com
+        directorMobile:
+          type: string
+          description: Mobile phone number of the business director
+          examples:
+            - '+1234567890'
+        businessType:
+          type: string
+          description: Type of business entity
+          examples:
+            - LIMITED_LIABILITY
+            - SOLE_PROPRIETOR
+            - PARTNERSHIP
+        businessRegistration:
+          type: string
+          description: Business registration number
+          examples:
+            - REG123456789
+        applicantId:
+          type: string
+          description: Unique identifier for the applicant
+          examples:
+            - APP001
+        vatTaxIdentifier:
+          type: string
+          description: VAT or tax identification number
+          examples:
+            - VAT123456789
+        businessName:
+          type: string
+          description: Registered name of the business
+          examples:
+            - ABC Trading Company Limited
+        address:
+          $ref: '#/components/schemas/Address'
+      required:
+        - directorName
+        - directorMail
+        - directorMobile
+        - businessType
+        - businessRegistration
+        - applicantId
+        - vatTaxIdentifier
+        - businessName
+        - address
+    BankDetails:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: Bank account number
+          examples:
+            - '1234567890'
+        branchCode:
+          type: string
+          description: Bank branch code or routing number
+          examples:
+            - BRANCH001
+            - '021000021'
+        bankName:
+          type: string
+          description: Name of the bank
+          examples:
+            - First National Bank
+        accountType:
+          type: string
+          description: Type of bank account
+          enum:
+            - SAVINGS
+            - CHECKING
+            - BUSINESS
+          examples:
+            - BUSINESS
+            - CHECKING
+        accountHolderName:
+          type: string
+          description: Name of the account holder
+          examples:
+            - ABC Trading Company Limited
+      required:
+        - accountNumber
+        - branchCode
+        - bankName
+        - accountType
+        - accountHolderName
     SenderDetails:
       type: object
       properties:
@@ -788,6 +984,52 @@ components:
       required:
         - status
         - quantity
+    Address:
+      type: object
+      required:
+        - region
+        - province
+        - comuna
+        - locality
+      properties:
+        region:
+          type: string
+          description: Region or state
+          example: Callao
+        province:
+          type: string
+          description: Province
+          example: Callao
+        comuna:
+          type: string
+          description: District or comuna
+          example: Cercado
+        locality:
+          type: string
+          description: Street address and details
+          example: Av. Colonial, Warehouse 5, Gate B
+        district:
+          type: string
+          description: District (alternative to comuna)
+          example: Cercado
+        zipCode:
+          type: string
+          description: Postal/ZIP code
+          example: '07001'
+        latitude:
+          type: number
+          format: double
+          description: GPS latitude coordinate
+          example: -12.0464
+        longitude:
+          type: number
+          format: double
+          description: GPS longitude coordinate
+          example: -77.0428
+        phone:
+          type: string
+          description: Contact phone number
+          example: '+5112345678'
     ShipmentItem:
       type: object
       properties:
@@ -1026,6 +1268,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
+    SellerProfileAccepted:
+      description: Seller profile accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SellerProfileAcceptedResponse'
     WaybillAccepted:
       description: Waybill accepted for processing.
       content:
@@ -1069,6 +1317,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotRequestBody'
+    CreateSellerDraft:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateSellerRequestBody'
     WaybillRequest:
       required: true
       content:

@@ -98,9 +98,9 @@ paths:
       tags:
         - Shipments
       servers:
-        - url: https://api.serhafen-staging.andinolabs.tech/fcc
+        - url: https://api.staging.serhafen.tech/fcc
           description: Staging server
-        - url: https://api.serhafen.andinolabs.tech/fcc
+        - url: https://api.serhafen.tech/fcc
           description: Production server
   /v0/notifications:
     post:
@@ -114,7 +114,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/NotificationRequest'
       responses:
-        '200':
+        '202':
           $ref: '#/components/responses/NotificationSuccess'
         '400':
           $ref: '#/components/responses/ValidationError'
@@ -125,9 +125,9 @@ paths:
       tags:
         - CRM
       servers:
-        - url: https://api.serhafen-staging.andinolabs.tech/fcc
+        - url: https://api.staging.serhafen.tech/fcc
           description: Staging server
-        - url: https://api.serhafen.andinolabs.tech/fcc
+        - url: https://api.serhafen.tech/fcc
           description: Production server
   /v0/orders/snapshots:
     post:
@@ -152,9 +152,36 @@ paths:
       tags:
         - Orders
       servers:
-        - url: https://api.serhafen-staging.andinolabs.tech/fcc
+        - url: https://api.staging.serhafen.tech/fcc
           description: Staging server
-        - url: https://api.serhafen.andinolabs.tech/fcc
+        - url: https://api.serhafen.tech/fcc
+          description: Production server
+  /v0/sellers:
+    post:
+      summary: Create seller profile
+      description: Endpoint to create a new seller profile with business and bank details.
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/TraceParent'
+        - $ref: '#/components/parameters/CaseStyle'
+      requestBody:
+        $ref: '#/components/requestBodies/CreateSellerDraft'
+      responses:
+        '202':
+          $ref: '#/components/responses/SellerProfileAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+        - Profile
+      servers:
+        - url: https://api.staging.serhafen.tech/fcc
+          description: Staging server
+        - url: https://api.serhafen.tech/fcc
           description: Production server
 components:
   schemas:
@@ -298,6 +325,25 @@ components:
           examples:
             - REQ0001
             - REQ0002
+    SellerProfileAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the seller profile request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
     WaybillAcceptedResponse:
       type: object
       required:
@@ -382,6 +428,85 @@ components:
         - orderItems
         - choreRequests
         - remarks
+    CreateSellerRequestBody:
+      type: object
+      properties:
+        actionType:
+          type: string
+          description: Type of action being performed on the seller profile
+          examples:
+            - CREATE
+            - UPDATE
+        sellerId:
+          type: string
+          description: Unique identifier for the seller
+          examples:
+            - SELLER001
+            - SELLER002
+        email:
+          type: string
+          format: email
+          description: Email address of the seller
+          examples:
+            - seller@example.com
+        phone:
+          type: string
+          description: Phone number of the seller
+          examples:
+            - '+1234567890'
+        displayName:
+          type: string
+          description: Display name for the seller profile
+          examples:
+            - ABC Trading Co.
+        description:
+          type: string
+          description: Description of the seller or business
+          examples:
+            - Premium electronics retailer
+        sellerName:
+          type: string
+          description: Official name of the seller
+          examples:
+            - ABC Trading Company Ltd
+        status:
+          type: string
+          description: Current status of the seller profile
+          enum:
+            - ACCEPTED
+            - ACTIVE
+            - INACTIVE
+            - PENDING
+            - SUSPENDED
+          examples:
+            - ACTIVE
+        businessDetails:
+          $ref: '#/components/schemas/BusinessDetails'
+        bankDetails:
+          $ref: '#/components/schemas/BankDetails'
+        createdAt:
+          type: string
+          description: Timestamp when the seller profile was created
+          examples:
+            - '1709287800'
+        updatedAt:
+          type: string
+          description: Timestamp when the seller profile was last updated
+          examples:
+            - '1709460000'
+      required:
+        - actionType
+        - sellerId
+        - email
+        - phone
+        - displayName
+        - description
+        - sellerName
+        - status
+        - businessDetails
+        - bankDetails
+        - createdAt
+        - updatedAt
     WaybillRequestBody:
       type: object
       properties:
@@ -567,6 +692,104 @@ components:
         - choreRequestId
         - flowType
         - orderItems
+    BusinessDetails:
+      type: object
+      properties:
+        directorName:
+          type: string
+          description: Full name of the business director
+          examples:
+            - John Smith
+        directorMail:
+          type: string
+          format: email
+          description: Email address of the business director
+          examples:
+            - john.smith@example.com
+        directorMobile:
+          type: string
+          description: Mobile phone number of the business director
+          examples:
+            - '+1234567890'
+        businessType:
+          type: string
+          description: Type of business entity
+          examples:
+            - LIMITED_LIABILITY
+            - SOLE_PROPRIETOR
+            - PARTNERSHIP
+        businessRegistration:
+          type: string
+          description: Business registration number
+          examples:
+            - REG123456789
+        applicantId:
+          type: string
+          description: Unique identifier for the applicant
+          examples:
+            - APP001
+        vatTaxIdentifier:
+          type: string
+          description: VAT or tax identification number
+          examples:
+            - VAT123456789
+        businessName:
+          type: string
+          description: Registered name of the business
+          examples:
+            - ABC Trading Company Limited
+        address:
+          $ref: '#/components/schemas/Address'
+      required:
+        - directorName
+        - directorMail
+        - directorMobile
+        - businessType
+        - businessRegistration
+        - applicantId
+        - vatTaxIdentifier
+        - businessName
+        - address
+    BankDetails:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: Bank account number
+          examples:
+            - '1234567890'
+        branchCode:
+          type: string
+          description: Bank branch code or routing number
+          examples:
+            - BRANCH001
+            - '021000021'
+        bankName:
+          type: string
+          description: Name of the bank
+          examples:
+            - First National Bank
+        accountType:
+          type: string
+          description: Type of bank account
+          enum:
+            - SAVINGS
+            - CHECKING
+            - BUSINESS
+          examples:
+            - BUSINESS
+            - CHECKING
+        accountHolderName:
+          type: string
+          description: Name of the account holder
+          examples:
+            - ABC Trading Company Limited
+      required:
+        - accountNumber
+        - branchCode
+        - bankName
+        - accountType
+        - accountHolderName
     SenderDetails:
       type: object
       properties:
@@ -710,6 +933,56 @@ components:
       required:
         - status
         - quantity
+    Address:
+      type: object
+      properties:
+        addressName:
+          type: string
+          description: Name or label for this address
+          examples:
+            - Headquarters
+            - Warehouse
+        addressLine1:
+          type: string
+          description: Primary address line
+          examples:
+            - 123 Main Street
+        addressLine2:
+          type: string
+          description: Secondary address line (suite, floor, etc.)
+          examples:
+            - Suite 456
+        city:
+          type: string
+          description: City name
+          examples:
+            - New York
+        state:
+          type: string
+          description: State or province
+          examples:
+            - NY
+            - California
+        pincode:
+          type: string
+          description: Postal or ZIP code
+          examples:
+            - '10001'
+            - '90210'
+        country:
+          type: string
+          description: Country name or code
+          examples:
+            - USA
+            - United States
+      required:
+        - addressName
+        - addressLine1
+        - addressLine2
+        - city
+        - state
+        - pincode
+        - country
     ShipmentItem:
       type: object
       properties:
@@ -782,6 +1055,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
+    SellerProfileAccepted:
+      description: Seller profile accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SellerProfileAcceptedResponse'
     WaybillAccepted:
       description: Waybill accepted for processing.
       content:
@@ -801,6 +1080,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotRequestBody'
+    CreateSellerDraft:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateSellerRequestBody'
     WaybillRequest:
       required: true
       content:
@@ -858,4 +1143,6 @@ tags:
     description: CRM operations
   - name: Orders
     description: Orders operations
+  - name: Profile
+    description: Profile operations
 security: []

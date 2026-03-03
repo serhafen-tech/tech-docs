@@ -135,6 +135,12 @@ components:
         statusCode:
           type: number
           example: 200
+      example:
+        message: Pre-alert accepted for processing
+        body: Manifest 999-12345678 received successfully. 154 parcels will be processed asynchronously.
+        status: accepted
+        token: 550e8400-e29b-41d4-a716-446655440000
+        statusCode: 200
     TemuErrorResponse:
       type: object
       properties:
@@ -321,29 +327,36 @@ components:
           format: date-time
         mawbMasterPlaceTransmission:
           type: string
+          description: The place of transmission for the mawb.
         mawbDateInternment:
           type: string
           format: date-time
         mawbManifestNumber:
           type: string
+          description: The unique identifier for mawb.
         mawbManifestType:
           type: string
         mawbViaTransport:
           type: string
         mawbFlightTakeoffDate:
           type: string
-          format: date-time
+          pattern: ^\d{4}\/\d{2}\/\d{2}$
+          description: 'Scheduled or actual departure time of the flight (ETD) (format: YYYY/MM/DD).'
         mawbFlightArrivalDate:
           type: string
-          format: date-time
+          pattern: ^\d{4}\/\d{2}\/\d{2}$
+          description: 'Scheduled Estimated Time of Arrival (ETA) at the destination port (format: YYYY/MM/DD).'
         mawbHawbCount:
           type: number
           minimum: 0
+          description: The total number of parcels included in this manifest.
         mawbDeclaredWeight:
           type: number
+          description: Total consolidated weight of the MAWB in Kilograms (KG). Decimals are accepted.
           minimum: 0
         mawbVerifiedWeight:
           type: number
+          description: The verified/actual weight of the consolidated shipment in Kilograms (KG) as confirmed by the carrier or customs authority.
           minimum: 0
     TemuDetail:
       type: object
@@ -369,6 +382,7 @@ components:
       properties:
         hawbTrackingId:
           type: string
+          description: The last-mile carrier tracking number that will be used to deliver the parcel to the end customer.
         hawbShipperName:
           type: string
         hawbShipperCity:
@@ -403,6 +417,7 @@ components:
           description: Departamento/Department
         hawbAddresseeCountry:
           type: string
+          description: 2-letter ISO 3166-1 alpha-2 country code. Must match the endpoint being called (e.g., CL for Chile, PE for Peru).
         hawbAddresseePhone:
           type: string
         hawbAddresseeEmail:
@@ -410,22 +425,24 @@ components:
           format: email
         hawbAddresseeRut:
           type: string
+          description: National Identification Number. For Chile, this must be a valid RUT (e.g., 12345678-9). For Peru, this should be a valid DNI (8 digits) or RUC (11 digits).
         hawbDescriptionContent:
           type: string
+          description: Detailed, English or local language description of the goods for customs clearance. Vague descriptions like 'gift' or 'accessories' may cause customs delays.
         hawbWarning:
           type: string
         hawbValueUsd:
-          description: Declared value in USD (accepts number or string)
+          description: Total declared commercial value of the individual parcel in USD. Usually equals the sum of all item totalPrices. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbFobValueUsd:
-          description: FOB value in USD (accepts number or string)
+          description: Free On Board (FOB) value in USD. The cost of the goods excluding international shipping and insurance. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbCifValueUsd:
-          description: CIF value in USD (accepts number or string)
+          description: Cost, Insurance, and Freight (CIF) value in USD. The total cost of the goods including shipping and insurance to the destination port. (accepts number or string)
           oneOf:
             - type: number
             - type: string
@@ -437,26 +454,32 @@ components:
           description: Name of the company (as per SII)
         taxHasBeenPaid:
           type: string
-          description: Y or N
+          description: Indicates if VAT/Taxes have been prepaid. Accepted values typically include IVA_YES (Yes) or IVA_NO (No).
         hawbGrossWeight:
-          description: Gross weight (accepts number or string)
+          description: Must be provided in Kilograms (KG). Decimals are accepted. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbWeightDimensional:
           type: number
+          description: Volumetric/Dimensional weight of the parcel, typically in Kilograms (KG). Used for freight calculations when volume exceeds actual weight.
           minimum: 0
         hawbFreightValue:
           type: number
           minimum: 0
+          description: The declared value of the parcel for customs purposes. This is the value that customs authorities will use to calculate duties and taxes.
         hawbIdExternal:
           type: string
+          description: The Temu Order ID or external system identifier. Used for cross-referencing between systems.
         hawbBagId:
           type: string
+          description: Identifier of the physical Big Bag or sack containing this parcel. Used for tracking within the warehouse/logistics network.
         hawbBatchNumber:
           type: string
+          description: Batch number used for internal tracking and organization.
         hawbMasterCode:
           type: string
+          description: Master code used for internal tracking and organization.
         hawbInsurance:
           type: number
           minimum: 0
@@ -687,41 +710,42 @@ components:
           example: PE
         gnum:
           type: integer
-          description: Autoincrementing item number
+          description: Line item index number (1, 2, 3...) referencing the position of this item within the parcel. Must start at 1 and increment sequentially.
           minimum: 1
         hsCode:
           type: string
-          description: HS code
+          description: 6 to 10 digit Harmonized System Tariff Code. Required for accurate duty and tax calculation by local customs authorities.
         itemName:
           type: string
-          description: Item name
+          description: Clear, English or local language description of the product. Avoid generic terms like 'gift' or 'merchandise' to prevent customs delays.
         currency:
           type: string
-          description: Currency (ISO 4217)
+          description: 3-letter ISO 4217 Currency Code.
           pattern: ^[A-Z]{3}$
           example: USD
         price:
           type: number
-          description: Unit price
+          description: Unit price of a single item in the specified currency.
           minimum: 0
         qty:
           type: number
-          description: Quantity
+          description: Number of units of this specific item in the parcel.
           minimum: 1
         totalPrice:
           type: number
-          description: Total price
+          description: Total line-item value in the specified currency (qty × unit price).
           minimum: 0
         FOB:
           type: number
-          description: FOB value
+          description: Free On Board (FOB) value for this item in the specified currency. The cost of the good excluding international shipping and insurance.
           minimum: 0
         CIF:
           type: number
-          description: CIF value
+          description: Cost, Insurance, and Freight (CIF) value for this item in the specified currency. The total cost including shipping and insurance to destination.
           minimum: 0
         productUrl:
           type: string
+          description: URL of the product.
     Recipient:
       type: object
       properties:
@@ -1127,8 +1151,8 @@ components:
       description: Client identifier for authentication and routing
       schema:
         type: string
-        pattern: ^[A-Z]{2}$
-        example: CE
+        pattern: ^[A-Z]{2,10}$
+        example: CLX
     XClientSecretHeader:
       name: x-client-secret
       in: header

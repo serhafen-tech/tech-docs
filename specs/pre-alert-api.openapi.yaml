@@ -309,12 +309,12 @@ components:
           example: 5Y8052
         fromPortCode:
           type: string
-          description: Origin port/airport code
+          description: Origin port/airport code. Use 3-letter IATA code for AIR transport
           maxLength: 8
           example: HKG
         toPortCode:
           type: string
-          description: Destination port/airport code
+          description: Destination port/airport code. Use 3-letter IATA code for AIR transport
           maxLength: 8
           example: LIM
         eta:
@@ -329,7 +329,7 @@ components:
           example: '2024-01-18T08:15:00Z'
         totalPackages:
           type: integer
-          description: Total number of packages in manifest
+          description: Total number of parcels (HAWBs) expected in this manifest.
           minimum: 1
           example: 1060
         totalWeight:
@@ -433,13 +433,13 @@ components:
           example: PE
         trackingId:
           type: string
-          description: Unique tracking identifier
+          description: Unique tracking identifier. Usually the last-mile carrier tracking number used for local delivery to the end customer.
           maxLength: 100
           pattern: ^[A-Z0-9_-]+$
           example: SH-PE-123456789
         grossWeight:
           type: string
-          description: Gross weight
+          description: Gross weight of the parcel. Must be in the unit specified by weightUom (default KG).
           pattern: ^[0-9]+\.?[0-9]*$
           example: '2.5'
         netWeight:
@@ -459,7 +459,7 @@ components:
           example: KG
         declaredValue:
           type: number
-          description: FOB value - the declared value of goods at origin port
+          description: FOB value - the declared commercial value of goods at origin port excluding international shipping and insurance.
           minimum: 0.01
           example: 25
         freightPrice:
@@ -474,7 +474,7 @@ components:
           example: 0
         pieces:
           type: integer
-          description: Number of pieces
+          description: Number of physical boxes/packages that make up this specific HAWB.
           minimum: 1
           example: 1
         currency:
@@ -501,6 +501,7 @@ components:
           maxLength: 100
         logisticsOrderCode:
           type: string
+          description: Origin logistics provider's internal order code (e.g., Cainiao LP number).
           maxLength: 50
           example: LP00717258464258
         lastmilePartnerCode:
@@ -1677,8 +1678,8 @@ components:
       description: Client identifier for authentication and routing
       schema:
         type: string
-        pattern: ^[A-Z]{2}$
-        example: CE
+        pattern: ^[A-Z]{2,10}$
+        example: CLX
     XClientSecretHeader:
       name: x-client-secret
       in: header

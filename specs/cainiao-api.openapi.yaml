@@ -885,8 +885,8 @@ components:
       description: Client identifier for authentication and routing
       schema:
         type: string
-        pattern: ^[A-Z]{2}$
-        example: CE
+        pattern: ^[A-Z]{2,10}$
+        example: CLX
     XClientSecretHeader:
       name: x-client-secret
       in: header

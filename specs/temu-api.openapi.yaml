@@ -2,7 +2,14 @@ openapi: 3.1.0
 info:
   title: Temu API
   version: 1.0.0
-  description: Public APIs for Temu pre-alert integration
+  description: |
+    Public APIs for the **Temu Pre-Alert Integration**. 
+    
+    This API allows Temu and its logistics partners to submit consolidated air waybill (MAWB) manifests and individual house waybill (HAWB) parcel details for customs clearance in South American countries.
+    
+    ### Key Concepts
+    * **MAWB (Master Air Waybill)**: The consolidated shipment document containing overarching flight and routing data.
+    * **HAWB (House Air Waybill)**: The individual parcel or order details belonging to an end customer.
   contact:
     name: Platform Support
     email: platform-support@serhafen.com
@@ -12,7 +19,14 @@ paths:
       operationId: insertTemuPreAlertChile
       summary: Temu Chile Declaration (Manifest + Parcels)
       description: |
-        Receives a **single combined** manifest + parcels declaration from Temu for **Chile**. Send the full payload in one request; no separate parcel-then-manifest calls are required. The manifest header and parcel details are validated and stored; parcels are processed asynchronously from the stored manifest file.
+        Receives a **single combined** manifest containing both the Master Air Waybill (header) and all associated parcels (details) for **Chile**. 
+        
+        ### Workflow
+        1. **Synchronous Validation**: The API validates the structure, authenticates the client, and ensures all mandatory header/parcel fields are present.
+        2. **Storage**: The payload is persisted securely to the vault.
+        3. **Asynchronous Processing**: The connection is closed (returning a 200/202 status), and the backend systematically unpacks the manifest to process individual parcels for last-mile and customs clearance.
+        
+        *Note: Send the full payload in one request; no separate parcel-then-manifest calls are required.*
       parameters:
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
@@ -57,7 +71,12 @@ paths:
       operationId: insertTemuPreAlertPeru
       summary: Temu Peru Declaration (Manifest + Parcels)
       description: |
-        Receives a **single combined** manifest + parcels declaration from Temu for **Peru**. Send the full payload in one request; no separate parcel-then-manifest calls are required. The manifest header and parcel details are validated and stored; parcels are processed asynchronously from the stored manifest file.
+        Receives a **single combined** manifest containing both the Master Air Waybill (header) and all associated parcels (details) for **Peru**. 
+        
+        ### Workflow
+        1. **Synchronous Validation**: Validates the payload structure and mandatory fields.
+        2. **Storage**: Persists the manifest securely.
+        3. **Asynchronous Processing**: Parses and processes the individual parcels asynchronously.
       parameters:
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
@@ -101,22 +120,26 @@ components:
   schemas:
     TemuManifestRequest:
       type: object
+      description: The complete manifest payload combining the MAWB header and HAWB details.
       required:
         - header
         - detail
       properties:
         header:
           type: array
+          description: Contains exactly one MAWB header record defining the flight and consolidated shipment.
           minItems: 1
           items:
             $ref: '#/components/schemas/TemuHeader'
         detail:
           type: array
+          description: Contains all individual HAWB parcel records attached to this manifest.
           minItems: 1
           items:
             $ref: '#/components/schemas/TemuDetail'
     TemuResponse:
       type: object
+      description: Successful response after accepting a manifest submission.
       properties:
         message:
           type: string
@@ -124,7 +147,7 @@ components:
           example: Pre-alert accepted for processing
         body:
           type: string
-          example: PreAlert received successfully
+          example: Manifest 999-92326954 received successfully. 1400 parcels will be processed asynchronously.
         status:
           type: string
           nullable: true
@@ -132,11 +155,19 @@ components:
         token:
           type: string
           nullable: true
+          example: 550e8400-e29b-41d4-a716-446655440000
         statusCode:
           type: number
           example: 200
+      example:
+        message: "Pre-alert accepted for processing"
+        body: "Manifest 999-92326954 received successfully. 1400 parcels will be processed asynchronously."
+        status: "accepted"
+        token: "550e8400-e29b-41d4-a716-446655440000"
+        statusCode: 200
     TemuErrorResponse:
       type: object
+      description: Error response indicating validation or processing failure.
       properties:
         message:
           type: string
@@ -309,6 +340,7 @@ components:
         - parcelDetails
     TemuHeader:
       type: object
+      description: Defines the Master Air Waybill (MAWB) flight and routing details.
       required:
         - mawbMasterPlaceTransmission
         - mawbManifestNumber
@@ -332,21 +364,26 @@ components:
           type: string
         mawbFlightTakeoffDate:
           type: string
-          format: date-time
+          pattern: ^\d{4}/\d{2}/\d{2}$
+          description: Scheduled or actual departure time of the flight (ETD) (format: YYYY/MM/DD).
         mawbFlightArrivalDate:
           type: string
-          format: date-time
+          pattern: ^\d{4}/\d{2}/\d{2}$
+          description: Scheduled Estimated Time of Arrival (ETA) at the destination port (format: YYYY/MM/DD).
         mawbHawbCount:
           type: number
           minimum: 0
         mawbDeclaredWeight:
           type: number
+          description: Total consolidated weight of the MAWB in Kilograms (KG). Decimals are accepted.
           minimum: 0
         mawbVerifiedWeight:
           type: number
+          description: The verified/actual weight of the consolidated shipment in Kilograms (KG) as confirmed by the carrier or customs authority.
           minimum: 0
     TemuDetail:
       type: object
+      description: Defines the individual House Air Waybill (HAWB) parcel and customer information.
       required:
         - hawbTrackingId
         - hawbShipperName
@@ -369,14 +406,19 @@ components:
       properties:
         hawbTrackingId:
           type: string
+          description: The last-mile carrier tracking number that will be used to deliver the parcel to the end customer.
         hawbShipperName:
           type: string
+          description: Name of the shipper/origin warehouse.
         hawbShipperCity:
           type: string
+          description: City of the shipper/origin point.
         hawbShipperCountry:
           type: string
+          description: 2-letter ISO 3166-1 alpha-2 country code of the shipper.
         hawbPieces:
           type: integer
+          description: The number of individual pieces or bundles in this parcel.
         hawbBarcode:
           type: string
         hawbAddresseeName:
@@ -403,6 +445,7 @@ components:
           description: Departamento/Department
         hawbAddresseeCountry:
           type: string
+          description: 2-letter ISO 3166-1 alpha-2 country code. Must match the endpoint being called (e.g., CL for Chile, PE for Peru).
         hawbAddresseePhone:
           type: string
         hawbAddresseeEmail:
@@ -410,22 +453,24 @@ components:
           format: email
         hawbAddresseeRut:
           type: string
+          description: National Identification Number. For Chile, this must be a valid RUT (e.g., 12345678-9). For Peru, this should be a valid DNI (8 digits) or RUC (11 digits). Crucial for smooth customs clearance.
         hawbDescriptionContent:
           type: string
+          description: Detailed, English or local language description of the goods for customs clearance. Vague descriptions like 'gift' or 'accessories' may cause customs delays.
         hawbWarning:
           type: string
         hawbValueUsd:
-          description: Declared value in USD (accepts number or string)
+          description: Total declared commercial value of the individual parcel in USD. Usually equals the sum of all item totalPrices. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbFobValueUsd:
-          description: FOB value in USD (accepts number or string)
+          description: Free On Board (FOB) value in USD. The cost of the goods excluding international shipping and insurance. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbCifValueUsd:
-          description: CIF value in USD (accepts number or string)
+          description: Cost, Insurance, and Freight (CIF) value in USD. The total cost of the goods including shipping and insurance to the destination port. (accepts number or string)
           oneOf:
             - type: number
             - type: string
@@ -437,22 +482,25 @@ components:
           description: Name of the company (as per SII)
         taxHasBeenPaid:
           type: string
-          description: Y or N
+          description: Indicates if VAT/Taxes have been prepaid. Accepted values: Y (Yes) or N (No).
         hawbGrossWeight:
-          description: Gross weight (accepts number or string)
+          description: Gross weight of the individual parcel in Kilograms (KG). Decimals are accepted. This is the actual weight of the package including all contents. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbWeightDimensional:
           type: number
+          description: Volumetric/Dimensional weight of the parcel, typically in Kilograms (KG). Used for freight calculations when volume exceeds actual weight.
           minimum: 0
         hawbFreightValue:
           type: number
           minimum: 0
         hawbIdExternal:
           type: string
+          description: The Temu Order ID, seller identifier, or external system reference. Used for cross-referencing between systems and internal audits.
         hawbBagId:
           type: string
+          description: Identifier of the physical Big Bag or sack containing this parcel. Used for tracking within the warehouse/logistics network.
         hawbBatchNumber:
           type: string
         hawbMasterCode:
@@ -687,38 +735,38 @@ components:
           example: PE
         gnum:
           type: integer
-          description: Autoincrementing item number
+          description: Line item index number (1, 2, 3...) referencing the position of this item within the parcel. Must start at 1 and increment sequentially.
           minimum: 1
         hsCode:
           type: string
-          description: HS code
+          description: 6 to 10 digit Harmonized System Tariff Code. Required for accurate duty and tax calculation by local customs authorities.
         itemName:
           type: string
-          description: Item name
+          description: Clear, English or local language description of the product. Avoid generic terms like 'gift' or 'merchandise' to prevent customs delays.
         currency:
           type: string
-          description: Currency (ISO 4217)
+          description: 3-letter ISO 4217 Currency Code.
           pattern: ^[A-Z]{3}$
           example: USD
         price:
           type: number
-          description: Unit price
+          description: Unit price of a single item in the specified currency.
           minimum: 0
         qty:
           type: number
-          description: Quantity
+          description: Number of units of this specific item in the parcel.
           minimum: 1
         totalPrice:
           type: number
-          description: Total price
+          description: Total line-item value in the specified currency (qty × unit price).
           minimum: 0
         FOB:
           type: number
-          description: FOB value
+          description: Free On Board (FOB) value for this item in the specified currency. The cost of the good excluding international shipping and insurance.
           minimum: 0
         CIF:
           type: number
-          description: CIF value
+          description: Cost, Insurance, and Freight (CIF) value for this item in the specified currency. The total cost including shipping and insurance to destination.
           minimum: 0
         productUrl:
           type: string
@@ -1127,8 +1175,8 @@ components:
       description: Client identifier for authentication and routing
       schema:
         type: string
-        pattern: ^[A-Z]{2}$
-        example: CE
+        pattern: ^[A-Z]{2,10}$
+        example: TEMU
     XClientSecretHeader:
       name: x-client-secret
       in: header

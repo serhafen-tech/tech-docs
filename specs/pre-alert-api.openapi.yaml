@@ -7,6 +7,64 @@ info:
     name: Platform Support
     email: platform-support@serhafen.com
 paths:
+  /v0/auth/m2m/token:
+    post:
+      summary: Machine-to-Machine authentication using client credentials
+      description: Obtains an access token for service-to-service authentication using client credentials grant
+      operationId: getM2MToken
+      parameters:
+        - name: traceParent
+          in: header
+          required: false
+          description: Unique trace identifier for distributed tracing.
+          schema:
+            type: string
+            pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2MTokenRequest'
+            examples:
+              m2m_example:
+                summary: Service account authentication
+                value:
+                  clientId: iam-service-admin
+                  clientSecret: iam-service-secret-2024
+      responses:
+        '200':
+          description: M2M token obtained successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2MTokenSuccessResponse'
+        '400':
+          description: Invalid request or missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+      tags:
+        - Auth
+      servers:
+        - url: https://api.serhafen-staging.andinolabs.tech/iam
+          description: Staging server
+        - url: https://api.serhafen.andinolabs.tech/iam
+          description: Production server
   /mawbs/cl:
     post:
       operationId: submitManifestDeclareChile
@@ -244,6 +302,97 @@ paths:
           description: Local/Development
 components:
   schemas:
+    M2MTokenRequest:
+      type: object
+      required:
+        - clientId
+        - clientSecret
+      properties:
+        clientId:
+          type: string
+          description: Service account client ID
+          example: iam-service-admin
+        clientSecret:
+          type: string
+          description: Service account client secret
+          example: iam-service-secret-2024
+    M2MTokenSuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Service account token obtained successfully
+        data:
+          $ref: '#/components/schemas/M2MTokenData'
+    ValidationErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - details
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Request validation failed
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationErrorDetail'
+    UnauthorizedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Invalid credentials
+        error:
+          $ref: '#/components/schemas/UnauthorizedErrorData'
+    ServerErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: INTERNAL_SERVER_ERROR
+            message:
+              type: string
+              example: An unexpected error occurred
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationErrorDetail'
     ManifestDeclareRequest:
       type: object
       required:
@@ -606,6 +755,25 @@ components:
           examples:
             - REQ0001
             - REQ0002
+    SellerProfileAcceptedResponse:
+      type: object
+      required:
+        - status
+        - requestId
+      properties:
+        status:
+          type: string
+          description: Processing status of the seller profile request
+          enum:
+            - ACCEPTED
+            - PROCESSING
+            - COMPLETED
+        requestId:
+          type: string
+          description: Unique identifier for the request
+          examples:
+            - REQ0001
+            - REQ0002
     WaybillAcceptedResponse:
       type: object
       required:
@@ -690,6 +858,85 @@ components:
         - orderItems
         - choreRequests
         - remarks
+    CreateSellerRequestBody:
+      type: object
+      properties:
+        actionType:
+          type: string
+          description: Type of action being performed on the seller profile
+          examples:
+            - CREATE
+            - UPDATE
+        sellerId:
+          type: string
+          description: Unique identifier for the seller
+          examples:
+            - SELLER001
+            - SELLER002
+        email:
+          type: string
+          format: email
+          description: Email address of the seller
+          examples:
+            - seller@example.com
+        phone:
+          type: string
+          description: Phone number of the seller
+          examples:
+            - '+1234567890'
+        displayName:
+          type: string
+          description: Display name for the seller profile
+          examples:
+            - ABC Trading Co.
+        description:
+          type: string
+          description: Description of the seller or business
+          examples:
+            - Premium electronics retailer
+        sellerName:
+          type: string
+          description: Official name of the seller
+          examples:
+            - ABC Trading Company Ltd
+        status:
+          type: string
+          description: Current status of the seller profile
+          enum:
+            - ACCEPTED
+            - ACTIVE
+            - INACTIVE
+            - PENDING
+            - SUSPENDED
+          examples:
+            - ACTIVE
+        businessDetails:
+          $ref: '#/components/schemas/BusinessDetails'
+        bankDetails:
+          $ref: '#/components/schemas/BankDetails'
+        createdAt:
+          type: string
+          description: Timestamp when the seller profile was created
+          examples:
+            - '1709287800'
+        updatedAt:
+          type: string
+          description: Timestamp when the seller profile was last updated
+          examples:
+            - '1709460000'
+      required:
+        - actionType
+        - sellerId
+        - email
+        - phone
+        - displayName
+        - description
+        - sellerName
+        - status
+        - businessDetails
+        - bankDetails
+        - createdAt
+        - updatedAt
     WaybillRequestBody:
       type: object
       properties:
@@ -712,6 +959,54 @@ components:
         - receiverDetails
         - orderDetails
         - parcelDetails
+    M2MTokenData:
+      type: object
+      required:
+        - accessToken
+        - type
+        - expiryTimeInMinutes
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token for service-to-service authentication.
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        type:
+          type: string
+          description: Type of the token.
+          example: Bearer
+        expiryTimeInMinutes:
+          type: integer
+          description: Expiration time of the access token in minutes.
+          example: 60
+    ValidationErrorDetail:
+      type: object
+      required:
+        - field
+        - error
+        - code
+      properties:
+        field:
+          type: string
+          description: Field name that failed validation
+          example: email
+        error:
+          type: string
+          description: Human-readable error message
+          example: Email must be a valid email address
+        code:
+          type: string
+          description: Machine-readable error code
+          example: INVALID_FORMAT
+    UnauthorizedErrorData:
+      type: object
+      properties:
+        code:
+          type: number
+          example: UNAUTHORIZED
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
     ShipperInfo:
       type: object
       required:
@@ -1191,6 +1486,104 @@ components:
         - choreRequestId
         - flowType
         - orderItems
+    BusinessDetails:
+      type: object
+      properties:
+        directorName:
+          type: string
+          description: Full name of the business director
+          examples:
+            - John Smith
+        directorMail:
+          type: string
+          format: email
+          description: Email address of the business director
+          examples:
+            - john.smith@example.com
+        directorMobile:
+          type: string
+          description: Mobile phone number of the business director
+          examples:
+            - '+1234567890'
+        businessType:
+          type: string
+          description: Type of business entity
+          examples:
+            - LIMITED_LIABILITY
+            - SOLE_PROPRIETOR
+            - PARTNERSHIP
+        businessRegistration:
+          type: string
+          description: Business registration number
+          examples:
+            - REG123456789
+        applicantId:
+          type: string
+          description: Unique identifier for the applicant
+          examples:
+            - APP001
+        vatTaxIdentifier:
+          type: string
+          description: VAT or tax identification number
+          examples:
+            - VAT123456789
+        businessName:
+          type: string
+          description: Registered name of the business
+          examples:
+            - ABC Trading Company Limited
+        address:
+          $ref: '#/components/schemas/Address'
+      required:
+        - directorName
+        - directorMail
+        - directorMobile
+        - businessType
+        - businessRegistration
+        - applicantId
+        - vatTaxIdentifier
+        - businessName
+        - address
+    BankDetails:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: Bank account number
+          examples:
+            - '1234567890'
+        branchCode:
+          type: string
+          description: Bank branch code or routing number
+          examples:
+            - BRANCH001
+            - '021000021'
+        bankName:
+          type: string
+          description: Name of the bank
+          examples:
+            - First National Bank
+        accountType:
+          type: string
+          description: Type of bank account
+          enum:
+            - SAVINGS
+            - CHECKING
+            - BUSINESS
+          examples:
+            - BUSINESS
+            - CHECKING
+        accountHolderName:
+          type: string
+          description: Name of the account holder
+          examples:
+            - ABC Trading Company Limited
+      required:
+        - accountNumber
+        - branchCode
+        - bankName
+        - accountType
+        - accountHolderName
     SenderDetails:
       type: object
       properties:
@@ -1273,6 +1666,25 @@ components:
         - totalWeight
         - totalVolume
         - parcels
+    ErrorDetail:
+      type: object
+      required:
+        - field
+        - error
+        - code
+      properties:
+        field:
+          type: string
+          description: Field or system component that caused the error
+          example: keycloak
+        error:
+          type: string
+          description: Human-readable error message
+          example: Connection to Keycloak failed
+        code:
+          type: string
+          description: Machine-readable error code
+          example: CONNECTION_ERROR
     Recipient:
       type: object
       properties:
@@ -1315,6 +1727,56 @@ components:
       required:
         - status
         - quantity
+    Address:
+      type: object
+      properties:
+        addressName:
+          type: string
+          description: Name or label for this address
+          examples:
+            - Headquarters
+            - Warehouse
+        addressLine1:
+          type: string
+          description: Primary address line
+          examples:
+            - 123 Main Street
+        addressLine2:
+          type: string
+          description: Secondary address line (suite, floor, etc.)
+          examples:
+            - Suite 456
+        city:
+          type: string
+          description: City name
+          examples:
+            - New York
+        state:
+          type: string
+          description: State or province
+          examples:
+            - NY
+            - California
+        pincode:
+          type: string
+          description: Postal or ZIP code
+          examples:
+            - '10001'
+            - '90210'
+        country:
+          type: string
+          description: Country name or code
+          examples:
+            - USA
+            - United States
+      required:
+        - addressName
+        - addressLine1
+        - addressLine2
+        - city
+        - state
+        - pincode
+        - country
     ShipmentItem:
       type: object
       properties:
@@ -1335,189 +1797,27 @@ components:
         - quantity
     Parcel:
       type: object
+      properties:
+        parcelId:
+          type: string
+          description: Unique identifier for the individual parcel
+          examples:
+            - PARCEL001
+        parcelWeight:
+          type: number
+          description: Weight of this parcel in kilograms
+          minimum: 0
+          examples:
+            - 5.2
+            - 8.7
       required:
-        - IOSSNo
-        - goodsList
-      properties:
-        weight:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Weight'
-        weightUnit:
-          type: string
-          description: '**[OPTIONAL]** Weight unit'
-        suggestedWeight:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Suggested weight'
-        price:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Price'
-        priceUnit:
-          type: string
-          description: '**[OPTIONAL]** Price unit'
-        priceCurrency:
-          type: string
-          description: '**[OPTIONAL]** Currency code'
-        length:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Length'
-        width:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Width'
-        height:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Height'
-        size:
-          type: string
-          description: '**[OPTIONAL]** Size description'
-        volume:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Volume'
-        volumeUnit:
-          type: string
-          description: '**[OPTIONAL]** Volume unit'
-        parcelQuantity:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Parcel quantity'
-        splitNum:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Split number'
-        masterID:
-          type: string
-          description: '**[OPTIONAL]** Master ID'
-        bigBagID:
-          type: string
-          description: '**[OPTIONAL]** Big bag ID'
-        bigBagWeight:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Big bag weight'
-        bigBagWeightUnit:
-          type: string
-          description: '**[OPTIONAL]** Big bag weight unit'
-        asnID:
-          type: string
-          description: '**[OPTIONAL]** ASN ID'
-        IOSSNo:
-          type: string
-          description: '**[REQUIRED]** IOSS registration number'
-        dimensionUnit:
-          type: string
-          description: '**[OPTIONAL]** Dimension unit'
-        goodsList:
-          type: array
-          items:
-            $ref: '#/components/schemas/GoodsItem'
-          description: '**[REQUIRED]** List of goods'
-    GoodsItem:
-      type: object
-      properties:
-        productID:
-          type: string
-          description: '**[OPTIONAL]** Product ID'
-        skuID:
-          type: string
-          description: '**[OPTIONAL]** SKU ID'
-        name:
-          type: string
-          description: '**[OPTIONAL]** Product name'
-        cnName:
-          type: string
-          description: '**[OPTIONAL]** Chinese name'
-        suggestedENName:
-          type: string
-          description: '**[OPTIONAL]** Suggested English name'
-        suggestedCNName:
-          type: string
-          description: '**[OPTIONAL]** Suggested Chinese name'
-        quantity:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Quantity (string or number)'
-        weight:
-          oneOf:
-            - type: string
-            - type: number
-          description: '**[OPTIONAL]** Weight (string or number)'
-        weightUnit:
-          type: string
-          description: '**[OPTIONAL]** Weight unit (e.g., ''g'', ''kg'')'
-        priceUnit:
-          type: string
-          description: '**[OPTIONAL]** Price unit (e.g., ''CENT'', ''USD'')'
-        priceCurrency:
-          type: string
-          description: '**[OPTIONAL]** Currency code'
-        hsCode:
-          type: string
-          description: '**[OPTIONAL]** HS code for customs'
-        categoryID:
-          type: string
-          description: '**[OPTIONAL]** Category ID'
-        categoryName:
-          type: string
-          description: '**[OPTIONAL]** Category name'
-        categoryCNName:
-          type: string
-          description: '**[OPTIONAL]** Chinese category name'
-        categoryFeature:
-          type: string
-          description: '**[OPTIONAL]** Category feature'
-        productCategory:
-          type: string
-          description: '**[OPTIONAL]** Product category'
-        declarePrice:
-          type: string
-          description: '**[OPTIONAL]** Declared price'
-        duty:
-          type: string
-          description: '**[OPTIONAL]** Duty amount'
-        url:
-          type: string
-          description: '**[OPTIONAL]** Product URL'
-        itemDeclarePrice:
-          type: string
-          description: '**[OPTIONAL]** Item declared price'
-        itemDuty:
-          type: string
-          description: '**[OPTIONAL]** Item duty'
-        extension:
-          type: string
-          description: '**[OPTIONAL]** Extension data (JSON string)'
+        - parcelId
+        - parcelWeight
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: api-key
-      description: API key for authentication
-    ExecutorAuth:
-      type: apiKey
-      in: header
-      name: executor-name
-      description: Executor name for partner webhooks (DNT, SAVAR, ENVIAME, IP, URP)
   responses:
     NotificationSuccess:
       description: Notification sent successfully.
@@ -1532,15 +1832,11 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
-      description: Unauthorized - Missing or invalid API key
+      description: Invalid client credentials.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            statusCode: 401
-            message: Unauthorized - Invalid or missing API key
-            error: Unauthorized
     ServerError:
       description: Internal server error.
       content:
@@ -1553,36 +1849,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotAcceptedResponse'
+    SellerProfileAccepted:
+      description: Seller profile accepted for processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SellerProfileAcceptedResponse'
     WaybillAccepted:
       description: Waybill accepted for processing.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/WaybillAcceptedResponse'
-    BadRequest:
-      description: Bad Request - Invalid input data
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            statusCode: 400
-            message: Validation failed
-            error: Bad Request
-            details:
-              - path:
-                  - destinationCountry
-                message: 'Must be one of: CL, PE, AR, US'
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            statusCode: 500
-            message: An unexpected error occurred
-            error: Internal Server Error
   requestBodies:
     NotificationRequest:
       required: true
@@ -1596,6 +1874,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OrderSnapshotRequestBody'
+    CreateSellerDraft:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateSellerRequestBody'
     WaybillRequest:
       required: true
       content:
@@ -1697,9 +1981,10 @@ components:
         type: string
         example: Bearer <token>
 tags:
+  - name: Auth
+    description: Auth operations
   - name: Pre-Alert Chile
     description: Pre-Alert Chile operations
   - name: Pre-Alert Peru
     description: Pre-Alert Peru operations
-security:
-  - ApiKeyAuth: []
+security: []

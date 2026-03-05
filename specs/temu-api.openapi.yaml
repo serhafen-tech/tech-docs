@@ -1,18 +1,109 @@
 openapi: 3.1.0
 info:
-  title: Temu API
+  title: Temu Pre-Alert API
   version: 1.0.0
-  description: Public APIs for Temu pre-alert integration
+  description: |
+    # Temu Pre-Alert API – Peru & Chile
+
+    This API is used by **Temu** to submit pre-alert declarations for shipments to **Peru** and **Chile**. Unlike the generic pre-alert flow, Temu sends a **single combined payload** that includes both manifest (MAWB) and parcel (HAWB) details in one request.
+    ## Authentication
+
+    All API requests require authentication using a bearer token obtained from our IAM service.
+
+    ### Obtaining an Access Token
+
+    Before using the Temu Pre-Alert API, you must obtain a bearer token via the machine-to-machine (M2M) authentication endpoint.
+
+    **Token Endpoint:**
+    ```
+    POST https://api.serhafen-staging.andinolabs.tech/iam-service/v0/auth/m2m/token
+    ```
+    **Request Example:**
+    ```bash
+    curl -X POST "https://api.serhafen-staging.andinolabs.tech/iam-service/v0/auth/m2m/token" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "clientId": "your-client-id",
+        "clientSecret": "your-client-secret"
+      }' | jq .
+    ```
+
+    **Response:**
+    The endpoint returns a JSON object containing an access token, which you will use as the authorization token in subsequent API requests.
+
+    ### Using the Access Token
+
+    Once you have obtained the token, include it in all Temu Pre-Alert API requests:
+
+    - **Authorization header** (required): Token obtained from the IAM service.
+
+    Authentication failures will result in an HTTP `401 Unauthorized` response.
+
+    ## Idempotency and Duplicate Prevention
+
+    To ensure data integrity and prevent duplicate submissions:
+
+    - **Unique hawbTrackingId**: Each parcel declaration must use a unique `hawbTrackingId`. This identifier serves as the idempotency key for parcel submissions.
+    - **Unique mawbManifestNumber**: Each manifest must have a unique `mawbManifestNumber` to prevent duplicate manifest processing.
+    - **Duplicate detection**: The API automatically detects and may reject duplicate declarations with the same tracking identifiers.
+
+    Duplicate submissions may be rejected with an HTTP `400 Bad Request` response or silently ignored depending on the processing state.
+
+    ## Call Flow (Temu-Specific)
+
+    Temu uses **one call per country** — no separate parcel-then-manifest order:
+
+    - **Peru:** `POST /temu/pe` — Send the full manifest + parcel payload for Peru.
+    - **Chile:** `POST /temu/cl` — Send the full manifest + parcel payload for Chile.
+
+    ## Processing Workflow
+
+    When a declaration is submitted, the API executes the following stages:
+
+    1. **Synchronous Validation**: The API authenticates the client credentials, validates the JSON structure against the OpenAPI schema, and verifies all mandatory header and payload fields are present and correctly formatted.
+    2. **Secure Storage**: The complete payload is persisted securely to our data vault. At this stage, the API returns an HTTP `200 OK` or `202 Accepted` response to acknowledge receipt and close the connection promptly.
+    3. **Asynchronous Processing**: The backend system independently processes the stored manifest, unpacks individual parcels, and routes them for last-mile integration and customs clearance without blocking the client connection.
+
+    ## Environments and base URLs
+
+    | Environment   | Base URL                                    | Use case                    |
+    |---------------|---------------------------------------------|-----------------------------|    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert` | Live Temu declarations      |
+    | **Staging**   | `https://api.serhafen-staging.andinolabs.tech/pre-alert`       | Testing and integration     |
+    | **Local**     | `/pre-alert` (relative to your host)          | Development only            |
   contact:
     name: Platform Support
     email: platform-support@serhafen.com
+servers:
+  - url: https://api.serhafen-net.andinolabs.tech/pre-alert
+    description: Production – use for live Temu declarations
+  - url: https://api.serhafen-staging.andinolabs.tech/pre-alert
+    description: Staging – use for testing and integration
+  - url: /pre-alert
+    description: Local/Development
+tags:
+  - name: Temu
+    description: Temu pre-alert declaration endpoints
 paths:
   /temu/cl:
     post:
+      tags:
+        - Temu
       operationId: insertTemuPreAlertChile
       summary: Temu Chile Declaration (Manifest + Parcels)
+      x-public: true
+      x-audience: temu
+      x-category: Temu
       description: |
         Receives a **single combined** manifest + parcels declaration from Temu for **Chile**. Send the full payload in one request; no separate parcel-then-manifest calls are required. The manifest header and parcel details are validated and stored; parcels are processed asynchronously from the stored manifest file.
+        
+        **Country code validation**: The `hawbAddresseeCountry` field must be set to `CL` for Chile-bound shipments. The API will validate and reject requests with inconsistent country data.
+        
+        **Chile-specific requirements:**
+        - Consignee `hawbAddresseeCommune` (comuna) is required
+        - `hawbAddresseeRut` should be valid Chilean RUT format (e.g., 12.345.678-9)
+        - SII tax fields (`taxCompanyId`, `taxCompanyName`) for customs compliance
+        - FOB/CIF valuation breakdown supported at parcel and item level
+        - `hawbTrackingId` must be unique across all parcel declarations
       parameters:
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
@@ -24,40 +115,152 @@ paths:
               $ref: '#/components/schemas/TemuManifestRequest'
       responses:
         '200':
-          description: Accepted and persisted payload
+          description: |
+            **Manifest accepted for processing**
+            
+            The request has passed all synchronous validation checks and the manifest has been securely stored to S3. This response indicates acceptance, not completion.
+            
+            The manifest and parcel details have been persisted and will be processed asynchronously. Individual parcels will be extracted from the manifest file and processed by background workers.
+            
+            **Response structure:**
+            - `message`: High-level status message
+            - `body`: Detailed information including manifest number and parcel count
+            - `status`: "accepted" for successful submissions
+            - `token`: The X-Trace-Id from the request headers (for tracing)
+            - `statusCode`: HTTP status code (200)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemuResponse'
+              examples:
+                success_example:
+                  summary: Successful submission
+                  value:
+                    message: "Pre-alert accepted for processing"
+                    body: "Manifest 480-00143173 received successfully. 200 parcels will be processed asynchronously."
+                    status: "accepted"
+                    token: "a3d6f123-4b5c-6d7e-8f9a-0b1c2d3e4f56"
+                    statusCode: 200
         '400':
-          description: Validation error
+          description: |
+            **Validation failed**
+            
+            The request failed one or more validation checks:
+            - Schema validation: Invalid data types, formats, or constraints
+            - Business rules: Missing required fields, invalid array sizes, country code mismatch
+            - Structure validation: Malformed header or detail arrays
+            
+            **Response structure:**
+            - `message`: Error category
+            - `body`: Detailed error description
+            - `status`: "rejected" for failed validations
+            - `token`: The X-Trace-Id from the request headers (for tracing)
+            - `statusCode`: HTTP status code (400)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemuErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation failed
+                  value:
+                    message: "Pre-alert validation failed"
+                    body: "Error: Validation failed"
+                    status: "rejected"
+                    token: "a3d6f123-4b5c-6d7e-8f9a-0b1c2d3e4f56"
+                    statusCode: 400
         '401':
-          description: Unauthorized
-        '500':
-          description: Server error
+          description: |
+            **Unauthorized - Authentication required**
+            
+            This error occurs when:
+            - No `Authorization` header is provided
+            - Invalid or expired authentication token
+            - Token verification fails
+            
+            The response uses the standard error format from the global exception filter.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemuErrorResponse'
-      tags:
-        - Temu
-      servers:
-        - url: https://api.serhafen-net.andinolabs.tech/customs
-          description: Production – use for live Temu declarations
-        - url: https://tech.andinolabs.com/customs
-          description: Staging – use for testing and integration
-        - url: /customs
-          description: Local/Development
+                $ref: '#/components/schemas/StandardErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing or invalid authentication
+                  value:
+                    success: false
+                    error:
+                      code: "UnauthorizedException"
+                      message: "Internal server error"
+                      details: []
+                    timestamp: "2026-03-05T20:02:48.697Z"
+                    path: "/temu/cl"
+                    method: "POST"
+        '404':
+          description: |
+            **Not Found - Invalid endpoint**
+            
+            This error occurs when:
+            - Using an incorrect endpoint path
+            - The requested resource does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+              examples:
+                not_found:
+                  summary: Invalid endpoint path
+                  value:
+                    success: false
+                    error:
+                      code: "NotFoundException"
+                      message: "Internal server error"
+                      details: []
+                    timestamp: "2026-03-05T19:57:15.337Z"
+                    path: "/temu/chile"
+                    method: "POST"
+        '500':
+          description: |
+            **Internal server error**
+            
+            Unexpected server-side errors including:
+            - Database connection failures
+            - S3 storage errors
+            - Unhandled exceptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+              examples:
+                internal_error:
+                  summary: Unexpected server error
+                  value:
+                    success: false
+                    error:
+                      code: "InternalServerErrorException"
+                      message: "Internal server error"
+                      details: []
+                    timestamp: "2026-03-05T19:51:24.700Z"
+                    path: "/temu/cl"
+                    method: "POST"
   /temu/pe:
     post:
+      tags:
+        - Temu
       operationId: insertTemuPreAlertPeru
       summary: Temu Peru Declaration (Manifest + Parcels)
+      x-public: true
+      x-audience: temu
+      x-category: Temu
       description: |
         Receives a **single combined** manifest + parcels declaration from Temu for **Peru**. Send the full payload in one request; no separate parcel-then-manifest calls are required. The manifest header and parcel details are validated and stored; parcels are processed asynchronously from the stored manifest file.
+        
+        **Country code validation**: The `hawbAddresseeCountry` field must be set to `PE` for Peru-bound shipments. The API will validate and reject requests with inconsistent country data.
+        
+        **Peru-specific requirements:**
+        - Consignee `hawbAddresseeDepartment` (Departamento) is required
+        - `hawbAddresseeProvince` (Provincia) and `hawbAddresseeDistrict` (Distrito) for precise addressing
+        - `hawbAddresseeRut` should contain DNI (8 digits) for Peruvian nationals
+        - `hawbTrackingId` must be unique across all parcel declarations
       parameters:
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
@@ -69,34 +272,133 @@ paths:
               $ref: '#/components/schemas/TemuManifestRequest'
       responses:
         '200':
-          description: Accepted and persisted payload
+          description: |
+            **Manifest accepted for processing**
+            The request has passed all synchronous validation checks and the manifest has been securely stored to S3. This response indicates acceptance, not completion. 
+            The manifest and parcel details have been persisted and will be processed asynchronously. Individual parcels will be extracted from the manifest file and processed by background workers.
+            
+            **Response structure:**
+            - `message`: High-level status message
+            - `body`: Detailed information including manifest number and parcel count
+            - `status`: "accepted" for successful submissions
+            - `token`: The X-Trace-Id from the request headers (for tracing)
+            - `statusCode`: HTTP status code (200)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemuResponse'
+              examples:
+                success_example:
+                  summary: Successful submission
+                  value:
+                    message: "Pre-alert accepted for processing"
+                    body: "Manifest TEMU-PE-2024-001 received successfully. 150 parcels will be processed asynchronously."
+                    status: "accepted"
+                    token: "550e8400-e29b-41d4-a716-446655440000"
+                    statusCode: 200
         '400':
-          description: Validation error
+          description: |
+            **Validation failed**
+            
+            The request failed one or more validation checks:
+            - Schema validation: Invalid data types, formats, or constraints
+            - Business rules: Missing required fields, invalid array sizes, country code mismatch
+            - Structure validation: Malformed header or detail arrays
+            
+            Failed requests are stored to: `FAILED/TEMU/MAWBS/{year}/{month}/{id}.json`
+            
+            **Response structure:**
+            - `message`: Error category
+            - `body`: Detailed error description
+            - `status`: "rejected" for failed validations
+            - `token`: The X-Trace-Id from the request headers (for tracing)
+            - `statusCode`: HTTP status code (400)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TemuErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation failed
+                  value:
+                    message: "Pre-alert validation failed"
+                    body: "Error: Validation failed"
+                    status: "rejected"
+                    token: "550e8400-e29b-41d4-a716-446655440000"
+                    statusCode: 400
         '401':
-          description: Unauthorized
-        '500':
-          description: Server error
+          description: |
+            **Unauthorized - Authentication required**
+            
+            This error occurs when:
+            - No `Authorization` header is provided
+            - Invalid or expired authentication token
+            - Token verification fails
+            
+            The response uses the standard error format from the global exception filter.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemuErrorResponse'
-      tags:
-        - Temu
-      servers:
-        - url: https://api.serhafen-net.andinolabs.tech/customs
-          description: Production – use for live Temu declarations
-        - url: https://tech.andinolabs.com/customs
-          description: Staging – use for testing and integration
-        - url: /customs
-          description: Local/Development
+                $ref: '#/components/schemas/StandardErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing or invalid authentication
+                  value:
+                    success: false
+                    error:
+                      code: "UnauthorizedException"
+                      message: "Internal server error"
+                      details: []
+                    timestamp: "2026-03-05T20:02:48.697Z"
+                    path: "/temu/pe"
+                    method: "POST"
+        '404':
+          description: |
+            **Not Found - Invalid endpoint**
+            
+            This error occurs when:
+            - Using an incorrect endpoint path
+            - The requested resource does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+              examples:
+                not_found:
+                  summary: Invalid endpoint path
+                  value:
+                    success: false
+                    error:
+                      code: "NotFoundException"
+                      message: "Internal server error"
+                      details: []
+                    timestamp: "2026-03-05T19:57:15.337Z"
+                    path: "/temu/chile"
+                    method: "POST"
+        '500':
+          description: |
+            **Internal server error**
+            
+            Unexpected server-side errors including:
+            - Database connection failures
+            - S3 storage errors
+            - Unhandled exceptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+              examples:
+                internal_error:
+                  summary: Unexpected server error
+                  value:
+                    success: false
+                    error:
+                      code: "InternalServerErrorException"
+                      message: "Internal server error"
+                      details: []
+                    timestamp: "2026-03-05T19:51:24.700Z"
+                    path: "/temu/pe"
+                    method: "POST"
 components:
   schemas:
     TemuManifestRequest:
@@ -107,11 +409,13 @@ components:
       properties:
         header:
           type: array
+          description: Array of manifest headers containing consolidated shipment information (MAWB details). Typically contains one header per manifest.
           minItems: 1
           items:
             $ref: '#/components/schemas/TemuHeader'
         detail:
           type: array
+          description: Array of individual parcel details (HAWB details) included in the manifest. Each item represents one parcel with complete shipping and customs information.
           minItems: 1
           items:
             $ref: '#/components/schemas/TemuDetail'
@@ -143,6 +447,7 @@ components:
         statusCode: 200
     TemuErrorResponse:
       type: object
+      description: Error response format returned by the controller for validation errors
       properties:
         message:
           type: string
@@ -161,6 +466,67 @@ components:
         statusCode:
           type: number
           example: 400
+
+    StandardErrorResponse:
+      type: object
+      description: Standard error response format returned by the global exception filter for authentication, authorization, and server errors
+      required:
+        - success
+        - error
+        - timestamp
+        - path
+        - method
+      properties:
+        success:
+          type: boolean
+          example: false
+          description: Indicates the request was unsuccessful
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-03-05T19:51:24.700Z"
+          description: ISO 8601 timestamp when the error occurred
+        path:
+          type: string
+          example: "/temu/cl"
+          description: The API endpoint path where the error occurred
+        method:
+          type: string
+          example: "POST"
+          description: The HTTP method used in the request
+
+    ErrorDetail:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+          description: Error code identifying the type of error
+          example: "UnauthorizedException"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Unauthorized"
+        details:
+          type: array
+          description: Array of specific field-level validation errors (empty for non-validation errors)
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: The field that caused the error
+              message:
+                type: string
+                description: Detailed error message for the field
+              code:
+                type: string
+                description: Machine-readable error code
     NotificationAcceptedResponse:
       type: object
       required:
@@ -423,27 +789,31 @@ components:
         mawbMasterDate:
           type: string
           format: date-time
+          description: Master air waybill creation date and time.
         mawbMasterPlaceTransmission:
           type: string
           description: The place of transmission for the mawb.
         mawbDateInternment:
           type: string
           format: date-time
+          description: Date and time when the shipment entered customs or the destination country.
         mawbManifestNumber:
           type: string
           description: The unique identifier for mawb.
         mawbManifestType:
           type: string
+          description: Type of manifest (e.g., commercial, courier, postal).
         mawbViaTransport:
           type: string
+          description: Mode or route of transport (e.g., air freight, sea freight).
         mawbFlightTakeoffDate:
           type: string
           pattern: ^\d{4}\/\d{2}\/\d{2}$
-          description: 'Scheduled or actual departure time of the flight (ETD) (format: YYYY/MM/DD).'
+          description: "Scheduled or actual departure time of the flight (ETD) (format: YYYY/MM/DD)."
         mawbFlightArrivalDate:
           type: string
           pattern: ^\d{4}\/\d{2}\/\d{2}$
-          description: 'Scheduled Estimated Time of Arrival (ETA) at the destination port (format: YYYY/MM/DD).'
+          description: "Scheduled Estimated Time of Arrival (ETA) at the destination port (format: YYYY/MM/DD)."
         mawbHawbCount:
           type: number
           minimum: 0
@@ -483,24 +853,34 @@ components:
           description: The last-mile carrier tracking number that will be used to deliver the parcel to the end customer.
         hawbShipperName:
           type: string
+          description: Name of the shipper/sender of the parcel.
         hawbShipperCity:
           type: string
+          description: City where the shipment originates.
         hawbShipperCountry:
           type: string
+          description: Country of origin (ISO 2-letter country code).
         hawbPieces:
           type: integer
+          description: Number of pieces/packages in this individual parcel shipment.
         hawbBarcode:
           type: string
+          description: Barcode identifier for the parcel, used for scanning and tracking in warehouses.
         hawbAddresseeName:
           type: string
+          description: Full name of the recipient/consignee.
         hawbAddresseeAddress:
           type: string
+          description: Address for delivery.
         hawbAddresseeZipCode:
           type: string
+          description: Postal/ZIP code of the delivery address.
         hawbAddresseeRegion:
           type: string
+          description: Region or state of the delivery address.
         hawbAddresseeCity:
           type: string
+          description: City of the delivery address.
         hawbAddresseeCommune:
           type: string
           description: Comuna
@@ -518,6 +898,7 @@ components:
           description: 2-letter ISO 3166-1 alpha-2 country code. Must match the endpoint being called (e.g., CL for Chile, PE for Peru).
         hawbAddresseePhone:
           type: string
+          description: Contact phone number of the recipient.
         hawbAddresseeEmail:
           type: string
           format: email
@@ -529,6 +910,7 @@ components:
           description: Detailed, English or local language description of the goods for customs clearance. Vague descriptions like 'gift' or 'accessories' may cause customs delays.
         hawbWarning:
           type: string
+          description: Special warnings or handling instructions for the parcel (e.g., fragile, perishable, hazardous materials).
         hawbValueUsd:
           description: Total declared commercial value of the individual parcel in USD. Usually equals the sum of all item totalPrices. (accepts number or string)
           oneOf:

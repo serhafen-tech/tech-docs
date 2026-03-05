@@ -1141,6 +1141,7 @@ components:
       properties:
         name:
           type: string
+          description: Full name of the consignee
           maxLength: 255
           example: Juan Pérez González
         address:
@@ -1150,9 +1151,9 @@ components:
           example: Av. Libertador Bernardo O'Higgins 1234, Providencia, Santiago
         city:
           type: string
-          description: City of the consignee.
+          description: City of the consignee
           maxLength: 100
-          example: Santiago
+          example: San Isidro
         country:
           type: string
           minLength: 2
@@ -1163,12 +1164,12 @@ components:
           type: string
           description: Peruvian department (Departamento). Required when destinationCountryCode is PE, optional for other countries. Validated at API level.
           maxLength: 100
-          example: Arequipa
+          example: Lima
         province:
           type: string
           description: Peruvian province (Provincia). Required when destinationCountryCode is PE, optional for other countries. Validated at API level.
           maxLength: 100
-          example: Arequipa
+          example: Lima
         district:
           type: string
           description: Peruvian district (Distrito). Required when destinationCountryCode is PE for precise addressing, optional for other countries. Validated at API level.
@@ -1176,17 +1177,17 @@ components:
           example: Cercado
         state:
           type: string
-          description: State or region. For Chile, this is the Región (required).
+          description: State or region. For Chile, this is the Región (required). For Peru, this can be used for department or state.
           maxLength: 100
-          example: Valparaíso
+          example: Lima
         zipCode:
           type: string
           maxLength: 20
-          example: '7500000'
+          example: '15046'
         street:
           type: string
           maxLength: 500
-          example: Av. Libertador Bernardo O'Higgins 1234
+          example: Av. Javier Prado Este 1234
         email:
           type: string
           format: email
@@ -1195,10 +1196,10 @@ components:
         phone:
           type: string
           maxLength: 50
-          example: '+56987654321'
+          example: '+51912345678'
         identificationType:
           type: string
-          description: Type of identification document. DNI is standard for Peruvian nationals.RUT for Chilean nationals. Validated at API level based on destination country.
+          description: Type of identification document. DNI is standard for Peruvian nationals. RUT for Chilean nationals. Validated at API level based on destination country.
           enum:
             - RUT
             - DNI
@@ -1211,7 +1212,7 @@ components:
           type: string
           description: Identification number (e.g. RUT format 12.345.678-9 for Chile, DNI 8 digits for Peru)
           maxLength: 100
-          example: 12.345.678-9
+          example: '12345678'
         uniqueReferences:
           type: array
           items:

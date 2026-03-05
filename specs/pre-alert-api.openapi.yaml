@@ -37,7 +37,7 @@ info:
 
     Once you have obtained the token, include it in all Pre-Alert API requests using these headers:
 
-    - **Authorization header** (required): Token obtained from the IAM service. Format: `Authorization: Bearer <your-token>`
+    - **Authorization header** (required): Token obtained from the IAM service.
     - **x-client-code header** (required): Your unique client identifier (e.g., `CLX`)
 
     Authentication failures will result in an HTTP `401 Unauthorized` response.

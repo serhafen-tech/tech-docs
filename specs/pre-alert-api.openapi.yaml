@@ -6,9 +6,6 @@ info:
     # Pre-Alert API
 
     This API enables external partners to submit **parcel** and **manifest** declarations for shipments destined to **Chile** and **Peru**. It is designed to provide a unified integration experience across our service tiers with a single, consistent interface.
-
-    ## Intended Audience
-
     - Systems requiring parcel and manifest declaration capabilities for Chile-bound and Peru-bound shipments
     - Clients utilizing the generic pre-alert flow (identified by `x-client-code` header) with bearer token authentication
 
@@ -175,8 +172,7 @@ paths:
                     message: Request processed successfully
                     mawbNumber: '2024001'
                     totalParcels: 3
-                    processedParcels: 3
-                    errors: []
+                    processedParcels: 3                    
         '400':
           description: Bad request - Invalid data format or missing required fields
           content:
@@ -307,8 +303,7 @@ paths:
                     success: true
                     message: Request processed successfully
                     trackingId: "99M003041663"
-                    status: PROCESSED
-                    errors: []
+                    status: PROCESSED                    
         '400':
           description: Bad request - Invalid data format or missing required fields
           content:
@@ -422,8 +417,7 @@ paths:
                     message: Request processed successfully
                     mawbNumber: '2024001'
                     totalParcels: 3
-                    processedParcels: 3
-                    errors: []
+                    processedParcels: 3                    
         '400':
           description: Bad request - Invalid data format or missing required fields
           content:
@@ -552,7 +546,6 @@ paths:
                     message: Request processed successfully
                     trackingId: "SH-PE-123456789"
                     status: PROCESSED
-                    errors: []
         '400':
           description: Bad request - Invalid data format or missing required fields
           content:

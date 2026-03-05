@@ -5,11 +5,10 @@ info:
   description: |
     # Pre-Alert API
 
-    This API enables external partners to submit **parcel** and **manifest** declarations for shipments destined to **Chile** and **Peru**. It is designed to provide a unified integration experience across our service tiers (S1, S2, S3) with a single, consistent interface.
+    This API enables external partners to submit **parcel** and **manifest** declarations for shipments destined to **Chile** and **Peru**. It is designed to provide a unified integration experience across our service tiers with a single, consistent interface.
 
     ## Intended Audience
 
-    - **External partners** integrating with our customs pre-alert platform
     - Systems requiring parcel and manifest declaration capabilities for Chile-bound and Peru-bound shipments
     - Clients utilizing the generic pre-alert flow (identified by `x-client-code` header) with bearer token authentication
 
@@ -52,7 +51,6 @@ info:
 
     - **Unique trackingId**: Each parcel declaration must use a unique `trackingId`. This identifier serves as the idempotency key for parcel submissions.
     - **Duplicate detection**: The API automatically detects and rejects duplicate parcel declarations with the same `trackingId`.
-    - **Best practice**: Implement client-side deduplication logic before submission to avoid unnecessary rejections.
     - **Manifest uniqueness**: Ensure `mawbNumber` and `manifestNumber` combinations are unique per submission.
 
     Duplicate submissions may be rejected with an HTTP `400 Bad Request` response or silently ignored depending on the processing state.

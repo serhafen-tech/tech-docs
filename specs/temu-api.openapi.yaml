@@ -121,8 +121,8 @@ paths:
                   header:
                     - mawbMasterPlaceTransmission: HKG
                       mawbManifestNumber: 370-97842394
-                      mawbFlightTakeoffDate: "2026/03/06"
-                      mawbFlightArrivalDate: "2026/03/07"
+                      mawbFlightTakeoffDate: "2026/03/08"
+                      mawbFlightArrivalDate: "2026/03/09"
                       mawbHawbCount: 2684
                       mawbDeclaredWeight: "1500.00"
                   detail:
@@ -358,8 +358,8 @@ paths:
                   header:
                     - mawbMasterPlaceTransmission: CAN
                       mawbManifestNumber: 164-99893765
-                      mawbFlightTakeoffDate: "2026/02/24"
-                      mawbFlightArrivalDate: "2026/02/25"
+                      mawbFlightTakeoffDate: "2026/03/08"
+                      mawbFlightArrivalDate: "2026/03/09"
                       mawbHawbCount: 11
                   detail:
                     - itemList:

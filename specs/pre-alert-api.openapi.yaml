@@ -135,8 +135,8 @@ paths:
                   transportNumber: "5Y8052"
                   fromPortCode: HKG
                   toPortCode: SCL
-                  eta: "2024-01-20T14:30:00Z"
-                  etd: "2024-01-18T08:15:00Z"
+                  eta: "2026-03-20T14:30:00Z"
+                  etd: "2026-03-18T08:15:00Z"
                   totalPackages: 1
                   totalWeight: 458
                   totalValue: 15000
@@ -402,8 +402,8 @@ paths:
                   transportNumber: "5Y8052"
                   fromPortCode: HKG
                   toPortCode: LIM
-                  eta: "2024-01-20T14:30:00Z"
-                  etd: "2024-01-18T08:15:00Z"
+                  eta: "2026-03-20T14:30:00Z"
+                  etd: "2026-03-18T08:15:00Z"
                   totalPackages: 1
                   totalWeight: 458
                   totalValue: 15000

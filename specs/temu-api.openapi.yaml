@@ -67,7 +67,8 @@ info:
     ## Environments and base URLs
 
     | Environment   | Base URL                                    | Use case                    |
-    |---------------|---------------------------------------------|-----------------------------|    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert` | Live Temu declarations      |
+    |---------------|---------------------------------------------|-----------------------------|
+    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert` | Live Temu declarations      |
     | **Staging**   | `https://api.serhafen-staging.andinolabs.tech/pre-alert`       | Testing and integration     |
     | **Local**     | `/pre-alert` (relative to your host)          | Development only            |
   contact:
@@ -113,6 +114,86 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TemuManifestRequest'
+            examples:
+              payload:
+                summary: Temu Chile payload example
+                value:
+                  header:
+                    - mawbMasterPlaceTransmission: HKG
+                      mawbManifestNumber: 370-97842394
+                      mawbFlightTakeoffDate: "2026/03/06"
+                      mawbFlightArrivalDate: "2026/03/07"
+                      mawbHawbCount: 2684
+                      mawbDeclaredWeight: "1500.00"
+                  detail:
+                    - taxCompanyId: 59251750-7
+                      taxCompanyName: Elementary Innovation Pte. Ltd.
+                      taxHasBeenPaid: IVA_NO
+                      itemList:
+                        - country: CL
+                          totalPrice: "2.58"
+                          gnum: 1
+                          itemName: The rack
+                          hsCode: 39259000
+                          qty: 1
+                          currency: USD
+                          productUrl: https://www.temu.com/goods.html?_bg_fs=1&goods_id=601099619360218
+                          FOB: "2.58"
+                        - country: CL
+                          totalPrice: "2.51"
+                          gnum: 2
+                          itemName: threshing plane
+                          hsCode: 82055100
+                          qty: 1
+                          currency: USD
+                          productUrl: https://www.temu.com/goods.html?_bg_fs=1&goods_id=601100781335243
+                          FOB: "2.51"
+                        - country: CL
+                          totalPrice: "4.70"
+                          gnum: 3
+                          itemName: brush
+                          hsCode: 96039000
+                          qty: 1
+                          currency: USD
+                          productUrl: https://www.temu.com/goods.html?_bg_fs=1&goods_id=606146031154306
+                          FOB: "4.70"
+                        - country: CL
+                          totalPrice: "2.52"
+                          gnum: 4
+                          itemName: hook up
+                          hsCode: 39259000
+                          qty: 1
+                          currency: USD
+                          productUrl: https://www.temu.com/goods.html?_bg_fs=1&goods_id=601104624814358
+                          FOB: "2.52"
+                        - country: CL
+                          totalPrice: "1.41"
+                          gnum: 5
+                          itemName: False eyes
+                          hsCode: 95030099
+                          qty: 1
+                          currency: USD
+                          productUrl: https://www.temu.com/goods.html?_bg_fs=1&goods_id=601105703311652
+                          FOB: "1.41"
+                      hawbTrackingId: 3514076038
+                      hawbShipperName: ZQ01
+                      hawbShipperCity: Zhaoqing
+                      hawbShipperCountry: CN
+                      hawbPieces: 5
+                      hawbAddresseeName: karolaine Alvarado Moreno
+                      hawbAddresseeAddress: Calle Ángel Pimentel 01487
+                      hawbAddresseeRegion: Región Metropolitana de Santiago
+                      hawbAddresseeCommune: Puente Alto
+                      hawbAddresseeCountry: CL
+                      hawbAddresseePhone: 949002530
+                      hawbAddresseeRut: 18478538-2
+                      hawbDescriptionContent: The rack;threshing plane;brush;hook up;False eyes
+                      hawbCifValueUsd: "15.15"
+                      hawbFobValueUsd: "13.72"
+                      hawbGrossWeight: "0.385"
+                      hawbIdExternal: BG-2601278CGP1YS9NG
+                      hawbBagId: CLMC260128175913
+                      hawbMasterCode: 370-97842394
       responses:
         '200':
           description: |
@@ -270,6 +351,117 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TemuManifestRequest'
+            examples:
+              payload:
+                summary: Temu Peru payload example
+                value:
+                  header:
+                    - mawbMasterPlaceTransmission: CAN
+                      mawbManifestNumber: 164-99893765
+                      mawbFlightTakeoffDate: "2026/02/24"
+                      mawbFlightArrivalDate: "2026/02/25"
+                      mawbHawbCount: 11
+                  detail:
+                    - itemList:
+                        - country: PE
+                          totalPrice: "7.72"
+                          gnum: 1
+                          itemName: Long Open-Front Cardigan
+                          hsCode: 9809000020
+                          price: "7.72"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "9.14"
+                          gnum: 2
+                          itemName: shorts
+                          hsCode: 6207110000
+                          price: "4.57"
+                          qty: 2
+                          currency: USD
+                        - country: PE
+                          totalPrice: "54.48"
+                          gnum: 3
+                          itemName: One-piece swimsuit
+                          hsCode: 6112490000
+                          price: "13.62"
+                          qty: 4
+                          currency: USD
+                        - country: PE
+                          totalPrice: "5.71"
+                          gnum: 4
+                          itemName: pants
+                          hsCode: 6203429069
+                          price: "5.71"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "7.57"
+                          gnum: 5
+                          itemName: dress
+                          hsCode: 6204420000
+                          price: "7.57"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "10.95"
+                          gnum: 6
+                          itemName: Tank set
+                          hsCode: 6109909091
+                          price: "10.95"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "1.97"
+                          gnum: 7
+                          itemName: NudeBra
+                          hsCode: 3926209000
+                          price: "1.97"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "10.01"
+                          gnum: 8
+                          itemName: Waistcoat set
+                          hsCode: 9809000020
+                          price: "10.01"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "8.19"
+                          gnum: 9
+                          itemName: Women's swimsuit set
+                          hsCode: 6112410000
+                          price: "8.19"
+                          qty: 1
+                          currency: USD
+                        - country: PE
+                          totalPrice: "1.89"
+                          gnum: 10
+                          itemName: placket
+                          hsCode: 3926209000
+                          price: "1.89"
+                          qty: 1
+                          currency: USD
+                      hawbTrackingId: KXC412212568
+                      hawbShipperName: ZQ01
+                      hawbShipperCity: Zhaoqing
+                      hawbShipperCountry: CN
+                      hawbPieces: 14
+                      hawbAddresseeName: Ana Lucía Sotelo Arana
+                      hawbAddresseeAddress: calle 13 de abril #113
+                      hawbAddresseeRegion: Arequipa
+                      hawbAddresseeCommune: Arequipa
+                      hawbAddresseeCountry: PE
+                      hawbAddresseePhone: 989597701
+                      hawbAddresseeEmail: ui6cbeetb5120b3@g.shipping.temuemail.com
+                      hawbAddresseeRut: 10727495237
+                      hawbDescriptionContent: "Long Open-Front Cardigan;shorts;One-piece swimsuit;pants;dress;Tank set;NudeBra;Waistcoat set;Women's swimsuit set;placket"
+                      hawbValueUsd: "117.63"
+                      hawbGrossWeight: "2.387"
+                      hawbIdExternal: BG-3101198GXSZ2YCWG
+                      hawbBagId: BIFH310120548133
+                      hawbMasterCode: 164-99893765
       responses:
         '200':
           description: |
@@ -901,6 +1093,7 @@ components:
           description: Contact phone number of the recipient.
         hawbAddresseeEmail:
           type: string
+          description: Email address of the recipient.
           format: email
         hawbAddresseeRut:
           type: string
@@ -1805,8 +1998,5 @@ components:
       schema:
         type: string
         example: Bearer <token>
-tags:
-  - name: Temu
-    description: Temu operations
 security:
   - ApiKeyAuth: []

@@ -618,7 +618,7 @@ components:
           type: string
           format: date-time
           example: "2026-03-05T19:51:24.700Z"
-          description: ISO 8601 timestamp when the error occurred (example: 2026-03-05T19:51:24.700Z)
+          description: ISO 8601 timestamp when the error occurred (example 2026-03-05T19:51:24.700Z)
         path:
           type: string
           example: "/temu/cl"
@@ -920,23 +920,23 @@ components:
         mawbMasterDate:
           type: string
           format: date-time
-          description: Master air waybill creation date and time in ISO 8601 format (example: 2026-03-08T10:30:00Z).
+          description: Master air waybill creation date and time in ISO 8601 format (example 2026-03-08T10:30:00Z).
         mawbMasterPlaceTransmission:
           type: string
-          description: The place of transmission for the mawb (example: HKG, CAN, SCL).
+          description: The place of transmission for the mawb (example HKG, CAN, SCL).
         mawbDateInternment:
           type: string
           format: date-time
-          description: Date and time when the shipment entered customs or the destination country in ISO 8601 format (example: 2026-03-09T14:45:00Z).
+          description: Date and time when the shipment entered customs or the destination country in ISO 8601 format (example 2026-03-09T14:45:00Z).
         mawbManifestNumber:
           type: string
-          description: The unique identifier for mawb (example: 370-97842394).
+          description: The unique identifier for mawb (example 370-97842394).
         mawbManifestType:
           type: string
-          description: Type of manifest (example: commercial, courier, or postal).
+          description: Type of manifest (example commercial, courier, or postal).
         mawbViaTransport:
           type: string
-          description: Mode or route of transport (example: air freight, sea freight).
+          description: Mode or route of transport (example air freight, sea freight).
         mawbFlightTakeoffDate:
           type: string
           pattern: ^\d{4}\/\d{2}\/\d{2}$
@@ -948,14 +948,14 @@ components:
         mawbHawbCount:
           type: number
           minimum: 0
-          description: The total number of parcels included in this manifest (example: 154).
+          description: The total number of parcels included in this manifest (example 154).
         mawbDeclaredWeight:
           type: number
-          description: Total consolidated weight of the MAWB in Kilograms (KG). Decimals are accepted (example: 1500.00).
+          description: Total consolidated weight of the MAWB in Kilograms (KG). Decimals are accepted (example 1500.00).
           minimum: 0
         mawbVerifiedWeight:
           type: number
-          description: The verified/actual weight of the consolidated shipment in Kilograms (KG) as confirmed by the carrier or customs authority (example: 1505.50).
+          description: The verified/actual weight of the consolidated shipment in Kilograms (KG) as confirmed by the carrier or customs authority (example 1505.50).
           minimum: 0
     TemuDetail:
       type: object
@@ -981,128 +981,128 @@ components:
       properties:
         hawbTrackingId:
           type: string
-          description: The last-mile carrier tracking number that will be used to deliver the parcel to the end customer (example: TRK123456789CL).
+          description: The last-mile carrier tracking number that will be used to deliver the parcel to the end customer (example TRK123456789CL).
         hawbShipperName:
           type: string
-          description: Name of the shipper/sender of the parcel (example: Temu Warehouse HK).
+          description: Name of the shipper/sender of the parcel (example Temu Warehouse HK).
         hawbShipperCity:
           type: string
-          description: City where the shipment originates (example: Hong Kong, Guangzhou).
+          description: City where the shipment originates (example Hong Kong, Guangzhou).
         hawbShipperCountry:
           type: string
-          description: Country of origin - ISO 2-letter country code (example: CN, HK).
+          description: Country of origin - ISO 2-letter country code (example CN, HK).
         hawbPieces:
           type: integer
-          description: Number of pieces/packages in this individual parcel shipment (example: 1).
+          description: Number of pieces/packages in this individual parcel shipment (example 1).
         hawbBarcode:
           type: string
-          description: Barcode identifier for the parcel, used for scanning and tracking in warehouses (example: BAR123456789).
+          description: Barcode identifier for the parcel, used for scanning and tracking in warehouses (example BAR123456789).
         hawbAddresseeName:
           type: string
-          description: Full name of the recipient/consignee (example: Juan Pérez, María González).
+          description: Full name of the recipient/consignee (example Juan Pérez, María González).
         hawbAddresseeAddress:
           type: string
-          description: Address for delivery (example: Av. Libertador 1234, Apt 5B).
+          description: Address for delivery (example Av. Libertador 1234, Apt 5B).
         hawbAddresseeZipCode:
           type: string
-          description: Postal/ZIP code of the delivery address (example: 8320000, 15001).
+          description: Postal/ZIP code of the delivery address (example 8320000, 15001).
         hawbAddresseeRegion:
           type: string
-          description: Region or state of the delivery address (example: Metropolitana, Lima).
+          description: Region or state of the delivery address (example Metropolitana, Lima).
         hawbAddresseeCity:
           type: string
-          description: City of the delivery address (example: Santiago, Lima, Callao).
+          description: City of the delivery address (example Santiago, Lima, Callao).
         hawbAddresseeCommune:
           type: string
-          description: Comuna (example: Las Condes, Providencia, Miraflores).
+          description: Comuna (example Las Condes, Providencia, Miraflores).
         hawbAddresseeDistrict:
           type: string
-          description: Distrito/District (example: Cercado, Miraflores, San Isidro).
+          description: Distrito/District (example Cercado, Miraflores, San Isidro).
         hawbAddresseeProvince:
           type: string
-          description: Provincia/Province (example: Lima, Callao, Arequipa).
+          description: Provincia/Province (example Lima, Callao, Arequipa).
         hawbAddresseeDepartment:
           type: string
-          description: Departamento/Department (example: Lima, Cusco, Arequipa).
+          description: Departamento/Department (example Lima, Cusco, Arequipa).
         hawbAddresseeCountry:
           type: string
           description: 2-letter ISO 3166-1 alpha-2 country code. Must match the endpoint being called (e.g., CL for Chile, PE for Peru).
         hawbAddresseePhone:
           type: string
-          description: Contact phone number of the recipient (example: +56912345678, +51987654321).
+          description: Contact phone number of the recipient (example +56912345678, +51987654321).
         hawbAddresseeEmail:
           type: string
-          description: Email address of the recipient (example: cliente@example.com).
+          description: Email address of the recipient (example cliente@example.com).
           format: email
         hawbAddresseeRut:
           type: string
           description: National Identification Number. For Chile, this must be a valid RUT (e.g., 12345678-9). For Peru, this should be a valid DNI (8 digits) or RUC (11 digits).
         hawbDescriptionContent:
           type: string
-          description: Detailed, English or local language description of the goods for customs clearance (example: Women's Cotton T-Shirt, Blue, Size M). Vague descriptions like 'gift' or 'accessories' may cause customs delays.
+          description: Detailed, English or local language description of the goods for customs clearance (example Women's Cotton T-Shirt, Blue, Size M). Vague descriptions like 'gift' or 'accessories' may cause customs delays.
         hawbWarning:
           type: string
           description: Special warnings or handling instructions for the parcel (e.g., fragile, perishable, hazardous materials).
         hawbValueUsd:
-          description: Total declared commercial value of the individual parcel in USD (example: 45.99). Usually equals the sum of all item totalPrices. (accepts number or string)
+          description: Total declared commercial value of the individual parcel in USD (example 45.99). Usually equals the sum of all item totalPrices. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbFobValueUsd:
-          description: Free On Board (FOB) value in USD (example: 40.00). The cost of the goods excluding international shipping and insurance. (accepts number or string)
+          description: Free On Board (FOB) value in USD (example 40.00). The cost of the goods excluding international shipping and insurance. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbCifValueUsd:
-          description: Cost, Insurance, and Freight (CIF) value in USD (example: 45.99). The total cost of the goods including shipping and insurance to the destination port. (accepts number or string)
+          description: Cost, Insurance, and Freight (CIF) value in USD (example 45.99). The total cost of the goods including shipping and insurance to the destination port. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         taxCompanyId:
           type: string
-          description: SII ID - registered ID (example: 76.XXX.XXX-K, 59251750-7).
+          description: SII ID - registered ID (example 76.XXX.XXX-K, 59251750-7).
         taxCompanyName:
           type: string
-          description: Name of the company as per SII (example: Importadora Chile SpA).
+          description: Name of the company as per SII (example Importadora Chile SpA).
         taxHasBeenPaid:
           type: string
-          description: Indicates if VAT/Taxes have been prepaid (example: IVA_YES, IVA_NO). Accepted values typically include IVA_YES (Yes) or IVA_NO (No).
+          description: Indicates if VAT/Taxes have been prepaid (example IVA_YES, IVA_NO). Accepted values typically include IVA_YES (Yes) or IVA_NO (No).
         hawbGrossWeight:
-          description: Must be provided in Kilograms (KG) (example: 0.5, 1.25). Decimals are accepted. (accepts number or string)
+          description: Must be provided in Kilograms (KG) (example 0.5, 1.25). Decimals are accepted. (accepts number or string)
           oneOf:
             - type: number
             - type: string
         hawbWeightDimensional:
           type: number
-          description: Volumetric/Dimensional weight of the parcel, typically in Kilograms (KG) (example: 1.2). Used for freight calculations when volume exceeds actual weight.
+          description: Volumetric/Dimensional weight of the parcel, typically in Kilograms (KG) (example 1.2). Used for freight calculations when volume exceeds actual weight.
           minimum: 0
         hawbFreightValue:
           type: number
           minimum: 0
-          description: The declared value of the parcel for customs purposes (example: 45.99). This is the value that customs authorities will use to calculate duties and taxes.
+          description: The declared value of the parcel for customs purposes (example 45.99). This is the value that customs authorities will use to calculate duties and taxes.
         hawbIdExternal:
           type: string
-          description: The Temu Order ID or external system identifier (example: TEMU-ORD-123456789). Used for cross-referencing between systems.
+          description: The Temu Order ID or external system identifier (example TEMU-ORD-123456789). Used for cross-referencing between systems.
         hawbBagId:
           type: string
-          description: Identifier of the physical Big Bag or sack containing this parcel (example: BAG-2026-001234). Used for tracking within the warehouse/logistics network.
+          description: Identifier of the physical Big Bag or sack containing this parcel (example BAG-2026-001234). Used for tracking within the warehouse/logistics network.
         hawbBatchNumber:
           type: string
-          description: Batch number used for internal tracking and organization (example: BATCH-20260308-001).
+          description: Batch number used for internal tracking and organization (example BATCH-20260308-001).
         hawbMasterCode:
           type: string
-          description: Master code used for internal tracking and organization (example: MST-HKG-001).
+          description: Master code used for internal tracking and organization (example MST-HKG-001).
         hawbInsurance:
           type: number
           minimum: 0
-          description: Insurance value for the parcel (example: 5.00).
+          description: Insurance value for the parcel (example 5.00).
         itemList:
           type: array
           items:
             $ref: '#/components/schemas/TemuItem'
         token:
           type: string
-          description: Token for billing/partner association (example: billing-token-12345).
+          description: Token for billing/partner association (example billing-token-12345).
     ErrorObject:
       type: object
       required:
@@ -1421,42 +1421,42 @@ components:
           example: PE
         gnum:
           type: integer
-          description: Line item index number (example: 1, 2, 3) referencing the position of this item within the parcel. Must start at 1 and increment sequentially.
+          description: Line item index number (example 1, 2, 3) referencing the position of this item within the parcel. Must start at 1 and increment sequentially.
           minimum: 1
         hsCode:
           type: string
-          description: 6 to 10 digit Harmonized System Tariff Code (example: 6204.62.4000). Required for accurate duty and tax calculation by local customs authorities.
+          description: 6 to 10 digit Harmonized System Tariff Code (example 6204.62.4000). Required for accurate duty and tax calculation by local customs authorities.
         itemName:
           type: string
-          description: Clear, English or local language description of the product (example: Women's Cotton T-Shirt, Blue). Avoid generic terms like 'gift' or 'merchandise' to prevent customs delays.
+          description: Clear, English or local language description of the product (example Women's Cotton T-Shirt, Blue). Avoid generic terms like 'gift' or 'merchandise' to prevent customs delays.
         currency:
           type: string
-          description: 3-letter ISO 4217 Currency Code (example: USD).
+          description: 3-letter ISO 4217 Currency Code (example USD).
           pattern: ^[A-Z]{3}$
           example: USD
         price:
           type: number
-          description: Unit price of a single item in the specified currency (example: 12.99).
+          description: Unit price of a single item in the specified currency (example 12.99).
           minimum: 0
         qty:
           type: number
-          description: Number of units of this specific item in the parcel (example: 2).
+          description: Number of units of this specific item in the parcel (example 2).
           minimum: 1
         totalPrice:
           type: number
-          description: Total line-item value in the specified currency - qty × unit price (example: 25.98).
+          description: Total line-item value in the specified currency - qty × unit price (example 25.98).
           minimum: 0
         FOB:
           type: number
-          description: Free On Board (FOB) value for this item in the specified currency (example: 20.00). The cost of the good excluding international shipping and insurance.
+          description: Free On Board (FOB) value for this item in the specified currency (example 20.00). The cost of the good excluding international shipping and insurance.
           minimum: 0
         CIF:
           type: number
-          description: Cost, Insurance, and Freight (CIF) value for this item in the specified currency (example: 25.98). The total cost including shipping and insurance to destination.
+          description: Cost, Insurance, and Freight (CIF) value for this item in the specified currency (example 25.98). The total cost including shipping and insurance to destination.
           minimum: 0
         productUrl:
           type: string
-          description: URL of the product (example: https://www.temu.com/product/12345).
+          description: URL of the product (example https://www.temu.com/product/12345).
     Recipient:
       type: object
       properties:

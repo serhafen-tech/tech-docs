@@ -1001,11 +1001,11 @@ components:
         mawbFlightTakeoffDate:
           type: string
           pattern: ^\d{4}\/\d{2}\/\d{2}$
-          description: "Scheduled or actual departure time of the flight (ETD) (format: YYYY/MM/DD)."
+          description: "Scheduled or actual departure time of the flight (ETD) (format: YYYY/MM/DD). Must be on or after MAWB creation."
         mawbFlightArrivalDate:
           type: string
           pattern: ^\d{4}\/\d{2}\/\d{2}$
-          description: "Scheduled Estimated Time of Arrival (ETA) at the destination port (format: YYYY/MM/DD)."
+          description: "Scheduled Estimated Time of Arrival (ETA) at the destination port (format: YYYY/MM/DD). Must be on or after MAWB creation."
         mawbHawbCount:
           type: number
           minimum: 0

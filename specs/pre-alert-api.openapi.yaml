@@ -721,12 +721,12 @@ components:
         eta:
           type: string
           format: date-time
-          description: Estimated time of arrival
+          description: Estimated time of arrival. Must be on or after MAWB creation.
           example: '2024-01-20T14:30:00Z'
         etd:
           type: string
           format: date-time
-          description: Estimated time of departure
+          description: Estimated time of departure. Must be on or after MAWB creation.
           example: '2024-01-18T08:15:00Z'
         totalPackages:
           type: integer

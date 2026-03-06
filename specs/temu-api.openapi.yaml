@@ -66,11 +66,11 @@ info:
 
     ## Environments and base URLs
 
-    | Environment   | Base URL                                    | Use case                    |
-    |---------------|---------------------------------------------|-----------------------------|
-    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert` | Live Temu declarations      |
-    | **Staging**   | `https://api.serhafen-staging.andinolabs.tech/pre-alert`       | Testing and integration     |
-    | **Local**     | `/pre-alert` (relative to your host)          | Development only            |
+    | Environment   | Base URL                                                 | Use case               |
+    |---------------|----------------------------------------------------------|------------------------|
+    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert`     | Live Temu declarations |
+    | **Staging**   | `https://api.serhafen-staging.andinolabs.tech/pre-alert` | Testing and integration|
+    | **Local**     | `/pre-alert` (relative to your host)                     | Development only       |
   contact:
     name: Platform Support
     email: platform-support@serhafen.com

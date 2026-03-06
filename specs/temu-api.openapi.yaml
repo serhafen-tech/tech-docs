@@ -105,9 +105,6 @@ paths:
         - SII tax fields (`taxCompanyId`, `taxCompanyName`) for customs compliance
         - FOB/CIF valuation breakdown supported at parcel and item level
         - `hawbTrackingId` must be unique across all parcel declarations
-      parameters:
-        - $ref: '#/components/parameters/XTraceIdHeader'
-        - $ref: '#/components/parameters/XSpanIdHeader'
       requestBody:
         required: true
         content:
@@ -196,9 +193,8 @@ paths:
                       hawbMasterCode: 370-97842394
       responses:
         '200':
+          summary: Manifest accepted for processing
           description: |
-            **Manifest accepted for processing**
-            
             The request has passed all synchronous validation checks and the manifest has been securely stored to S3. This response indicates acceptance, not completion.
             
             The manifest and parcel details have been persisted and will be processed asynchronously. Individual parcels will be extracted from the manifest file and processed by background workers.
@@ -207,7 +203,6 @@ paths:
             - `message`: High-level status message
             - `body`: Detailed information including manifest number and parcel count
             - `status`: "accepted" for successful submissions
-            - `token`: The X-Trace-Id from the request headers (for tracing)
             - `statusCode`: HTTP status code (200)
           content:
             application/json:
@@ -220,12 +215,10 @@ paths:
                     message: "Pre-alert accepted for processing"
                     body: "Manifest 480-00143173 received successfully. 200 parcels will be processed asynchronously."
                     status: "accepted"
-                    token: "a3d6f123-4b5c-6d7e-8f9a-0b1c2d3e4f56"
                     statusCode: 200
         '400':
+          summary: Validation failed
           description: |
-            **Validation failed**
-            
             The request failed one or more validation checks:
             - Schema validation: Invalid data types, formats, or constraints
             - Business rules: Missing required fields, invalid array sizes, country code mismatch
@@ -235,7 +228,6 @@ paths:
             - `message`: Error category
             - `body`: Detailed error description
             - `status`: "rejected" for failed validations
-            - `token`: The X-Trace-Id from the request headers (for tracing)
             - `statusCode`: HTTP status code (400)
           content:
             application/json:
@@ -248,12 +240,10 @@ paths:
                     message: "Pre-alert validation failed"
                     body: "Error: Validation failed"
                     status: "rejected"
-                    token: "a3d6f123-4b5c-6d7e-8f9a-0b1c2d3e4f56"
                     statusCode: 400
         '401':
+          summary: Unauthorized - Authentication required
           description: |
-            **Unauthorized - Authentication required**
-            
             This error occurs when:
             - No `Authorization` header is provided
             - Invalid or expired authentication token
@@ -277,9 +267,8 @@ paths:
                     path: "/temu/cl"
                     method: "POST"
         '404':
+          summary: Not Found - Invalid endpoint
           description: |
-            **Not Found - Invalid endpoint**
-            
             This error occurs when:
             - Using an incorrect endpoint path
             - The requested resource does not exist
@@ -300,9 +289,8 @@ paths:
                     path: "/temu/chile"
                     method: "POST"
         '500':
+          summary: Internal server error
           description: |
-            **Internal server error**
-            
             Unexpected server-side errors including:
             - Database connection failures
             - S3 storage errors
@@ -342,9 +330,6 @@ paths:
         - `hawbAddresseeProvince` (Provincia) and `hawbAddresseeDistrict` (Distrito) for precise addressing
         - `hawbAddresseeRut` should contain DNI (8 digits) for Peruvian nationals
         - `hawbTrackingId` must be unique across all parcel declarations
-      parameters:
-        - $ref: '#/components/parameters/XTraceIdHeader'
-        - $ref: '#/components/parameters/XSpanIdHeader'
       requestBody:
         required: true
         content:
@@ -464,8 +449,8 @@ paths:
                       hawbMasterCode: 164-99893765
       responses:
         '200':
+          summary: Manifest accepted for processing
           description: |
-            **Manifest accepted for processing**
             The request has passed all synchronous validation checks and the manifest has been securely stored to S3. This response indicates acceptance, not completion. 
             The manifest and parcel details have been persisted and will be processed asynchronously. Individual parcels will be extracted from the manifest file and processed by background workers.
             
@@ -473,7 +458,6 @@ paths:
             - `message`: High-level status message
             - `body`: Detailed information including manifest number and parcel count
             - `status`: "accepted" for successful submissions
-            - `token`: The X-Trace-Id from the request headers (for tracing)
             - `statusCode`: HTTP status code (200)
           content:
             application/json:
@@ -486,12 +470,10 @@ paths:
                     message: "Pre-alert accepted for processing"
                     body: "Manifest TEMU-PE-2024-001 received successfully. 150 parcels will be processed asynchronously."
                     status: "accepted"
-                    token: "550e8400-e29b-41d4-a716-446655440000"
                     statusCode: 200
         '400':
+          summary: Validation failed
           description: |
-            **Validation failed**
-            
             The request failed one or more validation checks:
             - Schema validation: Invalid data types, formats, or constraints
             - Business rules: Missing required fields, invalid array sizes, country code mismatch
@@ -503,7 +485,6 @@ paths:
             - `message`: Error category
             - `body`: Detailed error description
             - `status`: "rejected" for failed validations
-            - `token`: The X-Trace-Id from the request headers (for tracing)
             - `statusCode`: HTTP status code (400)
           content:
             application/json:
@@ -516,12 +497,10 @@ paths:
                     message: "Pre-alert validation failed"
                     body: "Error: Validation failed"
                     status: "rejected"
-                    token: "550e8400-e29b-41d4-a716-446655440000"
                     statusCode: 400
         '401':
+          summary: Unauthorized - Authentication required
           description: |
-            **Unauthorized - Authentication required**
-            
             This error occurs when:
             - No `Authorization` header is provided
             - Invalid or expired authentication token
@@ -545,9 +524,8 @@ paths:
                     path: "/temu/pe"
                     method: "POST"
         '404':
+          summary: Not Found - Invalid endpoint
           description: |
-            **Not Found - Invalid endpoint**
-            
             This error occurs when:
             - Using an incorrect endpoint path
             - The requested resource does not exist
@@ -568,9 +546,8 @@ paths:
                     path: "/temu/chile"
                     method: "POST"
         '500':
+          summary: Internal server error
           description: |
-            **Internal server error**
-            
             Unexpected server-side errors including:
             - Database connection failures
             - S3 storage errors
@@ -625,9 +602,6 @@ components:
           type: string
           nullable: true
           example: accepted
-        token:
-          type: string
-          nullable: true
         statusCode:
           type: number
           example: 200
@@ -635,7 +609,6 @@ components:
         message: Pre-alert accepted for processing
         body: Manifest 999-12345678 received successfully. 154 parcels will be processed asynchronously.
         status: accepted
-        token: 550e8400-e29b-41d4-a716-446655440000
         statusCode: 200
     TemuErrorResponse:
       type: object
@@ -652,9 +625,6 @@ components:
           type: string
           nullable: true
           example: error
-        token:
-          type: string
-          nullable: true
         statusCode:
           type: number
           example: 400
@@ -1945,24 +1915,6 @@ components:
         examples:
           - camel
           - snake
-    XTraceIdHeader:
-      name: X-Trace-Id
-      in: header
-      required: false
-      description: Unique trace identifier for distributed tracing
-      schema:
-        type: string
-        pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-        example: 550e8400-e29b-41d4-a716-446655440000
-    XSpanIdHeader:
-      name: X-Span-Id
-      in: header
-      required: false
-      description: Unique span identifier for distributed tracing
-      schema:
-        type: string
-        pattern: ^[0-9a-f]{16}$
-        example: 1234567890abcdef
     TraceparentHeader:
       name: traceparent
       in: header

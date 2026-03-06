@@ -112,9 +112,6 @@ paths:
         **Country code validation**: The `destinationCountryCode` field must be set to `CL` for this endpoint. The API will validate and reject requests with any other country code.
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XTraceIdHeader'
-        - $ref: '#/components/parameters/XSpanIdHeader'
-        - $ref: '#/components/parameters/TraceparentHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
@@ -235,9 +232,6 @@ paths:
         - `trackingId` must be unique across all parcel declarations
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XTraceIdHeader'
-        - $ref: '#/components/parameters/XSpanIdHeader'
-        - $ref: '#/components/parameters/TraceparentHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
@@ -299,6 +293,9 @@ paths:
                   lastmilePartnerCode: DISTRIBUTOR_30710422
                   customsReference: CUSTOMS_REF_002
                   invoiceNumber: INV2024001
+                  taxCompanyId: "76546789-K"
+                  taxCompanyName: "Importadora Chile SpA"
+                  taxHasBeenPaid: "IVA_YES"
                   returnInfo:
                     name: lydia Escobar Cotal
                     address: Valparaiso, Vina del Mar, altos del mar psje3 casa103 reñaca alto paradero 8 casa
@@ -379,9 +376,6 @@ paths:
         **Country code validation**: The `destinationCountryCode` field must be set to `PE` for this endpoint. The API will validate and reject requests with any other country code.
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XTraceIdHeader'
-        - $ref: '#/components/parameters/XSpanIdHeader'
-        - $ref: '#/components/parameters/TraceparentHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
@@ -503,9 +497,6 @@ paths:
         - `trackingId` must be unique across all parcel declarations
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XTraceIdHeader'
-        - $ref: '#/components/parameters/XSpanIdHeader'
-        - $ref: '#/components/parameters/TraceparentHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
@@ -1539,15 +1530,6 @@ components:
         type: string
         enum:
           - application/json
-    TraceParent:
-      name: traceparent
-      in: header
-      required: true
-      description: Traceparent header for distributed tracing.
-      schema:
-        type: string
-        pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
-        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
     CaseStyle:
       name: X-Case-Style
       in: header
@@ -1562,33 +1544,6 @@ components:
         examples:
           - camel
           - snake
-    XTraceIdHeader:
-      name: X-Trace-Id
-      in: header
-      required: false
-      description: Unique trace identifier for distributed tracing
-      schema:
-        type: string
-        pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-        example: 550e8400-e29b-41d4-a716-446655440000
-    XSpanIdHeader:
-      name: X-Span-Id
-      in: header
-      required: false
-      description: Unique span identifier for distributed tracing
-      schema:
-        type: string
-        pattern: ^[0-9a-f]{16}$
-        example: 1234567890abcdef
-    TraceparentHeader:
-      name: traceparent
-      in: header
-      required: false
-      description: W3C Trace Context traceparent header for distributed tracing
-      schema:
-        type: string
-        pattern: ^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
-        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
     XClientCodeHeader:
       name: x-client-code
       in: header

@@ -1536,20 +1536,15 @@ components:
         type: string
         enum:
           - application/json
-    CaseStyle:
-      name: X-Case-Style
+    TraceParent:
+      name: traceparent
       in: header
-      required: false
-      description: Preferred property naming convention for the response. Use 'camel' for camelCase or 'snake' for snake_case. Defaults to camelCase if not specified.
+      required: true
+      description: Traceparent header for distributed tracing.
       schema:
         type: string
-        enum:
-          - camel
-          - snake
-        default: camel
-        examples:
-          - camel
-          - snake
+        pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
     XClientCodeHeader:
       name: x-client-code
       in: header

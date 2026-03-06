@@ -196,14 +196,7 @@ paths:
           summary: Manifest accepted for processing
           description: |
             The request has passed all synchronous validation checks and the manifest has been securely stored to S3. This response indicates acceptance, not completion.
-            
             The manifest and parcel details have been persisted and will be processed asynchronously. Individual parcels will be extracted from the manifest file and processed by background workers.
-            
-            **Response structure:**
-            - `message`: High-level status message
-            - `body`: Detailed information including manifest number and parcel count
-            - `status`: "accepted" for successful submissions
-            - `statusCode`: HTTP status code (200)
           content:
             application/json:
               schema:
@@ -219,16 +212,10 @@ paths:
         '400':
           summary: Validation failed
           description: |
-            The request failed one or more validation checks:
+            The request failed one or more validation checks
             - Schema validation: Invalid data types, formats, or constraints
             - Business rules: Missing required fields, invalid array sizes, country code mismatch
             - Structure validation: Malformed header or detail arrays
-            
-            **Response structure:**
-            - `message`: Error category
-            - `body`: Detailed error description
-            - `status`: "rejected" for failed validations
-            - `statusCode`: HTTP status code (400)
           content:
             application/json:
               schema:
@@ -248,8 +235,6 @@ paths:
             - No `Authorization` header is provided
             - Invalid or expired authentication token
             - Token verification fails
-            
-            The response uses the standard error format from the global exception filter.
           content:
             application/json:
               schema:
@@ -453,12 +438,6 @@ paths:
           description: |
             The request has passed all synchronous validation checks and the manifest has been securely stored to S3. This response indicates acceptance, not completion. 
             The manifest and parcel details have been persisted and will be processed asynchronously. Individual parcels will be extracted from the manifest file and processed by background workers.
-            
-            **Response structure:**
-            - `message`: High-level status message
-            - `body`: Detailed information including manifest number and parcel count
-            - `status`: "accepted" for successful submissions
-            - `statusCode`: HTTP status code (200)
           content:
             application/json:
               schema:
@@ -478,14 +457,6 @@ paths:
             - Schema validation: Invalid data types, formats, or constraints
             - Business rules: Missing required fields, invalid array sizes, country code mismatch
             - Structure validation: Malformed header or detail arrays
-            
-            Failed requests are stored to: `FAILED/TEMU/MAWBS/{year}/{month}/{id}.json`
-            
-            **Response structure:**
-            - `message`: Error category
-            - `body`: Detailed error description
-            - `status`: "rejected" for failed validations
-            - `statusCode`: HTTP status code (400)
           content:
             application/json:
               schema:
@@ -505,8 +476,6 @@ paths:
             - No `Authorization` header is provided
             - Invalid or expired authentication token
             - Token verification fails
-            
-            The response uses the standard error format from the global exception filter.
           content:
             application/json:
               schema:

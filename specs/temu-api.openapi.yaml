@@ -105,6 +105,8 @@ paths:
         - SII tax fields (`taxCompanyId`, `taxCompanyName`) for customs compliance
         - FOB/CIF valuation breakdown supported at parcel and item level
         - `hawbTrackingId` must be unique across all parcel declarations
+      parameters:
+        - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
         content:
@@ -315,6 +317,8 @@ paths:
         - `hawbAddresseeProvince` (Provincia) and `hawbAddresseeDistrict` (Distrito) for precise addressing
         - `hawbAddresseeRut` should contain DNI (8 digits) for Peruvian nationals
         - `hawbTrackingId` must be unique across all parcel declarations
+      parameters:
+        - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
         content:
@@ -1871,20 +1875,6 @@ components:
         type: string
         pattern: ^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
         example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
-    CaseStyle:
-      name: X-Case-Style
-      in: header
-      required: false
-      description: Preferred property naming convention for the response. Use 'camel' for camelCase or 'snake' for snake_case. Defaults to camelCase if not specified.
-      schema:
-        type: string
-        enum:
-          - camel
-          - snake
-        default: camel
-        examples:
-          - camel
-          - snake
     TraceparentHeader:
       name: traceparent
       in: header

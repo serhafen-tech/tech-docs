@@ -113,6 +113,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
         description: Manifest declaration data for Chile
@@ -233,6 +234,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
         description: Parcel declaration data for Chile
@@ -276,6 +278,8 @@ paths:
                   itemsList:
                     - itemNumber: 1005005824455795_1
                       itemName: "Ropa Set, cosas"
+                      packageDescription: "Children clothing set including shirt and pants, cotton material"
+                      gnum: 1
                       quantity: 1
                       unitPrice: 10.14
                       totalPrice: 10.14
@@ -377,6 +381,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
         description: Manifest declaration data for Peru
@@ -498,6 +503,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
         description: Parcel declaration data for Peru
@@ -1561,3 +1567,12 @@ components:
       schema:
         type: string
         example: Basic dXNlcm5hbWU6cGFzc3dvcmQ=
+    TraceparentHeader:
+      name: traceparent
+      in: header
+      required: false
+      description: W3C Trace Context traceparent header for distributed tracing (example 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01)
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+        example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01

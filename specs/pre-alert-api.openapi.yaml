@@ -65,7 +65,7 @@ info:
     **Endpoints must be called in the following order:**
 
     1. **Step 1: Parcel Declaration** — Call `POST /parcels/cl` (for Chile) or `POST /parcels/pe` (for Peru) for each parcel (or batch of parcels). This creates HAWB (House Air Waybill) records and registers parcel-level details with customs authorities.
-    2. **Step 2: Manifest Declaration** — After all parcels have been successfully declared, call `POST /mawbs/cl` (for Chile) or `POST /mawbs/pe` (for Peru) once to submit the manifest. This creates the MAWB (Master Air Waybill) and associates the previously declared parcels with the flight or shipment.
+    2. **Step 2: Manifest Declaration** — After all parcels have been successfully declared, call `POST /mawbs/cl` (for Chile) or `POST /mawbs/pe` (for Peru) once to submit the manifest. This creates the MAWB (Master Air Waybill) and associates the previously declared parcels with the flight or shipment. **Note:** The `trackingId` included in the manifest's `itemList` MUST exactly match the `trackingId` used in the corresponding parcel declarations.
 
     Submitting the manifest before declaring all parcels may result in validation errors, incomplete customs data, or processing delays.
 
@@ -391,40 +391,39 @@ paths:
               standard_manifest:
                 summary: Standard Manifest Declaration
                 value:
-                  mawbNumber: MAWB-2025-500
-                  manifestNumber: MAN-2025-500
-                  destinationCountryCode: PE
-                  customsType: INWARD
-                  transportType: AIR
+                  mawbNumber: "MAWB-2025-500"
+                  manifestNumber: "MAN-2025-500"
+                  destinationCountryCode: "PE"
+                  customsType: "INWARD"
+                  transportType: "AIR"
                   transportNumber: "5Y8052"
-                  fromPortCode: HKG
-                  toPortCode: LIM
+                  fromPortCode: "HKG"
+                  toPortCode: "LIM"
                   eta: "2026-03-20T14:30:00Z"
                   etd: "2026-03-18T08:15:00Z"
                   totalPackages: 1
                   totalWeight: 458
                   totalValue: 15000
-                  currency: USD
-                  customsClearanceMode: STANDARD
-                  clientReferenceNumber: CLIENT-REF-001
-                  exportLicense: EXP2024001
+                  currency: "USD"
+                  customsClearanceMode: "STANDARD"
+                  clientReferenceNumber: "CLIENT-REF-001"
+                  exportLicense: "EXP2024001"
                   shipperInfo:
-                    name: Yang Ke
-                    address: Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1
-                    city: Shaoxing
-                    country: CN
-                    department: Zhejiang
-                    province: Shaoxing
-                    district: Shangyu
-                    street: Tangpu Town, Room 301, Building 1
-                    email: 442699119@qq.com
+                    name: "Yang Ke"
+                    address: "Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1"
+                    city: "Shaoxing"
+                    country: "CN"
+                    department: "Zhejiang"
+                    province: "Shaoxing"
+                    district: "Shangyu"
+                    street: "Tangpu Town, Room 301, Building 1"
+                    email: "442699119@qq.com"
                     phone: "+86-21-12345678"
-                    companyName: happiness childhood Store
-                    taxId: 91330100MA2XXXXXXX
+                    companyName: "happiness childhood Store"
+                    taxId: "91330100MA2XXXXXXX"
                   itemList:
-                    - trackingId: 88M0030800
-                      bigBagNumber: BIGBAG508
-                  clientCode: CLX
+                    - trackingId: "900000"
+                      bigBagNumber: "BIGBAG508"
       responses:
         '200':
           description: Manifest declaration received and processed successfully
@@ -513,76 +512,76 @@ paths:
               standard_parcel:
                 summary: Standard Parcel Declaration for Peru
                 value:
-                  destinationCountryCode: PE
-                  trackingId: "889089"
-                  clientTrackingNumber: HAWB-1
+                  destinationCountryCode: "PE"
+                  trackingId: "900000"
+                  clientTrackingNumber: "HAWB-1"
                   grossWeight: "0.246"
                   declaredValue: 10.14
                   pieces: 1
-                  currency: USD
+                  currency: "USD"
                   senderInfo:
-                    name: Yang Ke
-                    address: CN, Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building A
-                    city: Shaoxing
-                    country: CN
-                    department: Zhejiang
-                    province: Shaoxing
-                    district: Shangyu
+                    name: "Yang Ke"
+                    address: "CN, Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building A"
+                    city: "Shaoxing"
+                    country: "CN"
+                    department: "Zhejiang"
+                    province: "Shaoxing"
+                    district: "Shangyu"
                     zipCode: "312000"
-                    email: 442699119@qq.com
+                    email: "442699119@qq.com"
                     phone: "15137736988"
-                    companyName: happiness childhood Store
-                    taxId: 91330100MA2XXXXXXX
+                    companyName: "happiness childhood Store"
+                    taxId: "91330100MA2XXXXXXX"
                   consigneeInfo:
-                    name: lydia Escobar Cotal
-                    address: Av. Javier Prado Este 1234, San Isidro, Lima
-                    city: Lima
-                    country: PE
-                    department: Lima
-                    province: Lima
-                    district: San Isidro
+                    name: "lydia Escobar Cotal"
+                    address: "Av. Javier Prado Este 1234, San Isidro, Lima"
+                    city: "Lima"
+                    country: "PE"
+                    department: "Lima"
+                    province: "Lima"
+                    district: "San Isidro"
                     zipCode: "15046"
-                    email: lya.escobar1986@gmail.com
+                    email: "lya.escobar1986@gmail.com"
                     phone: "+51984904074"
-                    identificationType: DNI
+                    identificationType: "DNI"
                     identificationNumber: "12345678"
                   itemsList:
-                    - itemNumber: 1005005824455795_1
+                    - itemNumber: 10050058244557952
                       itemName: "Ropa Set, cosas"
                       quantity: 1
                       unitPrice: 10.14
                       totalPrice: 10.14
-                      currency: USD
+                      currency: "USD"
                       barCode: ""
                       hsCode: "6203420000"
-                      country: CN
-                      productUrl: http://www.aliexpress.com/item/1005005824455795.html
-                  customsClearanceMode: STANDARD
+                      country: "CN"
+                      productUrl: "http://www.aliexpress.com/item/1005005824455795.html"
+                  customsClearanceMode: "STANDARD"
                   netWeight: "0.246"
                   freightPrice: 0.5
                   insurancePrice: 0
-                  weightUom: KG
+                  weightUom: "KG"
                   dangerousGoods: false
-                  logisticsOrderCode: LP00718526345882
-                  lastmilePartnerCode: DISTRIBUTOR_30710422
-                  customsReference: CUSTOMS_REF_002
-                  invoiceNumber: INV2024001
+                  logisticsOrderCode: "LP00718526345882"
+                  lastmilePartnerCode: "DISTRIBUTOR_30710422"
+                  customsReference: "CUSTOMS_REF_002"
+                  invoiceNumber: "INV2024001"
                   returnInfo:
-                    name: Returns Warehouse
-                    address: Av. Elmer Faucett s/n, Callao
-                    city: Callao
-                    country: PE
-                    department: Callao
-                    province: Callao
-                    district: Callao
+                    name: "Returns Warehouse"
+                    address: "Av. Elmer Faucett s/n, Callao"
+                    city: "Callao"
+                    country: "PE"
+                    department: "Callao"
+                    province: "Callao"
+                    district: "Callao"
                     zipCode: "07031"
-                    email: returns@company.pe
+                    email: "returns@company.pe"
                     phone: "+5112345678"
                   uniqueReferences:
-                    - key: ORDER_ID
-                      value: ORD123456789
-                    - key: PARTNER_REF
-                      value: REF987654321
+                    - key: "ORDER_ID"
+                      value: "ORD123456789"
+                    - key: "PARTNER_REF"
+                      value: "REF987654321"
       responses:
         '200':
           description: Parcel declaration received and processed successfully

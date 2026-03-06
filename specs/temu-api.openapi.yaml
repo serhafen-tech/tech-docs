@@ -8,11 +8,11 @@ info:
     This API is used by **Temu** to submit pre-alert declarations for shipments to **Peru** and **Chile**. Unlike the generic pre-alert flow, Temu sends a **single combined payload** that includes both manifest (MAWB) and parcel (HAWB) details in one request.
     ## Authentication
 
-    All API requests require authentication using a bearer token obtained from our IAM service.
+    All API requests require authentication using a Basic Auth token obtained from our IAM service.
 
     ### Obtaining an Access Token
 
-    Before using the Temu Pre-Alert API, you must obtain a bearer token via the machine-to-machine (M2M) authentication endpoint.
+    Before using the Temu Pre-Alert API, you must obtain a Basic Auth token via the machine-to-machine (M2M) authentication endpoint.
 
     **Token Endpoint:**
     ```
@@ -1794,10 +1794,9 @@ components:
           type: string
           description: '**[OPTIONAL]** Extension data (JSON string)'
   securitySchemes:
-    bearerAuth:
+    basicAuth:
       type: http
-      scheme: bearer
-      bearerFormat: JWT
+      scheme: basic
     ApiKeyAuth:
       type: apiKey
       in: header
@@ -1909,11 +1908,11 @@ components:
       name: Authorization
       in: header
       required: true
-      description: Bearer token for authentication.
+      description: Basic Auth token for authentication.
       schema:
         type: string
-        pattern: ^Bearer\s[a-zA-Z0-9\-._~+/]+=*$
-        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        pattern: ^Basic\s[a-zA-Z0-9+=]+$
+        example: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
     ContentType:
       name: Content-Type
       in: header
@@ -1994,9 +1993,9 @@ components:
       name: Authorization
       in: header
       required: true
-      description: Authorization header containing bearer token
+      description: Authorization header containing Basic Auth token
       schema:
         type: string
-        example: Bearer <token>
+        example: Basic dXNlcm5hbWU6cGFzc3dvcmQ=
 security:
   - ApiKeyAuth: []

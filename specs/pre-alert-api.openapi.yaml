@@ -7,15 +7,15 @@ info:
 
     This API enables external partners to submit **parcel** and **manifest** declarations for shipments destined to **Chile** and **Peru**. It is designed to provide a unified integration experience across our service tiers with a single, consistent interface.
     - Systems requiring parcel and manifest declaration capabilities for Chile-bound and Peru-bound shipments
-    - Clients utilizing the generic pre-alert flow (identified by `x-client-code` header) with bearer token authentication
+    - Clients utilizing the generic pre-alert flow (identified by `x-client-code` header) with Basic Auth token authentication
 
     ## Authentication
 
-    All API requests require authentication using a bearer token obtained from our IAM service.
+    All API requests require authentication using a Basic Auth token obtained from our IAM service.
 
     ### Obtaining an Access Token
 
-    Before using the Pre-Alert API, you must obtain a bearer token via the machine-to-machine (M2M) authentication endpoint. Both internal services and external clients use this method.
+    Before using the Pre-Alert API, you must obtain a Basic Auth token via the machine-to-machine (M2M) authentication endpoint. Both internal services and external clients use this method.
 
     **Token Endpoint:**
     ```
@@ -112,7 +112,6 @@ paths:
         **Country code validation**: The `destinationCountryCode` field must be set to `CL` for this endpoint. The API will validate and reject requests with any other country code.
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XClientSecretHeader'
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
         - $ref: '#/components/parameters/TraceparentHeader'
@@ -128,35 +127,38 @@ paths:
               standard_manifest:
                 summary: Standard Manifest Declaration
                 value:
-                  mawbNumber: "2024001"
-                  manifestNumber: "MANIFEST-2024-001"
-                  destinationCountryCode: "CL"
-                  customsType: "INWARD"
-                  customsClearanceMode: "STANDARD"
-                  transportType: "AIR"
+                  mawbNumber: MAWB-2025-500
+                  manifestNumber: MAN-2025-500
+                  destinationCountryCode: CL
+                  customsType: INWARD
+                  transportType: AIR
                   transportNumber: "5Y8052"
-                  fromPortCode: "HKG"
-                  toPortCode: "SCL"
+                  fromPortCode: HKG
+                  toPortCode: SCL
                   eta: "2024-01-20T14:30:00Z"
                   etd: "2024-01-18T08:15:00Z"
-                  totalPackages: 1060
-                  totalWeight: 458.0
-                  totalValue: 15000.0
-                  currency: "USD"
+                  totalPackages: 1
+                  totalWeight: 458
+                  totalValue: 15000
+                  currency: USD
+                  customsClearanceMode: STANDARD
+                  clientReferenceNumber: CLIENT-REF-001
+                  exportLicense: EXP2024001
                   shipperInfo:
-                    name: "Global Logistics Ltd."
-                    address: "Room 301, Building A, Export Zone"
-                    city: "Hong Kong"
-                    country: "HK"
-                    state: "Hong Kong"
-                    zipCode: "999077"
-                    email: "ops@global-logistics.hk"
-                    phone: "+85298765432"
+                    name: Yang Ke
+                    address: Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1
+                    city: Shaoxing
+                    country: CN
+                    state: Zhejiang
+                    street: Tangpu Town, Room 301, Building 1
+                    email: 442699119@qq.com
+                    phone: "+86-21-12345678"
+                    companyName: happiness childhood Store
+                    taxId: 91330100MA2XXXXXXX
                   itemList:
-                    - trackingId: "99M003041663"
-                      bigBagNumber: "BB-CL-001"
-                    - trackingId: "99M003041664"
-                      bigBagNumber: "BB-CL-001"
+                    - trackingId: 88M0030800
+                      bigBagNumber: BIGBAG508
+                  clientCode: CLX
       responses:
         '200':
           description: Manifest declaration received and processed successfully
@@ -233,7 +235,6 @@ paths:
         - `trackingId` must be unique across all parcel declarations
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XClientSecretHeader'
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
         - $ref: '#/components/parameters/TraceparentHeader'
@@ -249,46 +250,67 @@ paths:
               standard_parcel:
                 summary: Standard Parcel Declaration for Chile
                 value:
-                  destinationCountryCode: "CL"
-                  trackingId: "99M003041663"
+                  destinationCountryCode: CL
+                  trackingId: "889089"
+                  clientTrackingNumber: HAWB-1
                   grossWeight: "0.246"
-                  netWeight: "0.200"
-                  weightUom: "KG"
                   declaredValue: 10.14
-                  fobValue: 10.14
-                  cifValue: 12.50
                   pieces: 1
-                  currency: "USD"
-                  clientTrackingNumber: "EXT-TRACK-992"
+                  currency: USD
                   senderInfo:
-                    name: "Yang Ke"
-                    address: "Zhejiang Province, Shangyu District"
-                    city: "Shaoxing"
-                    country: "CN"
-                    state: "Zhejiang Province"
+                    name: Yang Ke
+                    address: CN, Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building A
+                    city: Shaoxing
+                    country: CN
+                    state: Zhejiang Province
                     zipCode: "312000"
-                    email: "sender@example.cn"
+                    email: 442699119@qq.com
                     phone: "15137736988"
+                    companyName: happiness childhood Store
+                    taxId: 91330100MA2XXXXXXX
                   consigneeInfo:
-                    name: "Ana Silva Morales"
-                    address: "Av. Libertad 250, Viña del Mar"
-                    city: "Viña del Mar"
-                    country: "CL"
-                    state: "Valparaíso"
+                    name: lydia Escobar Cotal
+                    address: Valparaiso, Vina del Mar, altos del mar psje3 casa103 reñaca alto paradero 8 casa
+                    city: Vina del Mar
+                    country: CL
+                    state: Valparaiso
                     zipCode: "2520000"
-                    email: "ana.silva@example.com"
-                    phone: "+56912345678"
-                    identificationType: "RUT"
-                    identificationNumber: "12345678-9"
+                    email: lya.escobar1986@gmail.com
+                    phone: "+56984904074"
+                    identificationType: RUT
+                    identificationNumber: 16331648-K
                   itemsList:
-                    - itemNumber: "1005005824455795_1"
-                      itemName: "Ropa Set"
+                    - itemNumber: 1005005824455795_1
+                      itemName: "Ropa Set, cosas"
                       quantity: 1
                       unitPrice: 10.14
                       totalPrice: 10.14
-                      currency: "USD"
+                      currency: USD
                       hsCode: "6203420000"
-                      country: "CN"
+                      country: CN
+                      productUrl: http://www.aliexpress.com/item/1005005824455795.html
+                  customsClearanceMode: STANDARD
+                  netWeight: "0.246"
+                  freightPrice: 0.5
+                  insurancePrice: 0
+                  weightUom: KG
+                  dangerousGoods: false
+                  logisticsOrderCode: LP00718526345882
+                  lastmilePartnerCode: DISTRIBUTOR_30710422
+                  customsReference: CUSTOMS_REF_002
+                  invoiceNumber: INV2024001
+                  returnInfo:
+                    name: lydia Escobar Cotal
+                    address: Valparaiso, Vina del Mar, altos del mar psje3 casa103 reñaca alto paradero 8 casa
+                    city: Vina del Mar
+                    country: CL
+                    state: Valparaiso
+                    zipCode: "2820000"
+                    email: lya.escobar1986@gmail.com
+                    phone: "+56984904074"
+                  uniqueReferences:
+                    - key: ORDER_ID
+                      value: ORD123456789
       responses:
         '200':
           description: Parcel declaration received and processed successfully
@@ -357,7 +379,6 @@ paths:
         **Country code validation**: The `destinationCountryCode` field must be set to `PE` for this endpoint. The API will validate and reject requests with any other country code.
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XClientSecretHeader'
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
         - $ref: '#/components/parameters/TraceparentHeader'
@@ -373,35 +394,40 @@ paths:
               standard_manifest:
                 summary: Standard Manifest Declaration
                 value:
-                  mawbNumber: "2024002"
-                  manifestNumber: "MANIFEST-2024-002"
-                  destinationCountryCode: "PE"
-                  customsType: "INWARD"
-                  customsClearanceMode: "STANDARD"
-                  transportType: "AIR"
+                  mawbNumber: MAWB-2025-500
+                  manifestNumber: MAN-2025-500
+                  destinationCountryCode: PE
+                  customsType: INWARD
+                  transportType: AIR
                   transportNumber: "5Y8052"
-                  fromPortCode: "HKG"
-                  toPortCode: "LIM"
+                  fromPortCode: HKG
+                  toPortCode: LIM
                   eta: "2024-01-20T14:30:00Z"
                   etd: "2024-01-18T08:15:00Z"
-                  totalPackages: 1060
-                  totalWeight: 458.0
-                  totalValue: 15000.0
-                  currency: "USD"
+                  totalPackages: 1
+                  totalWeight: 458
+                  totalValue: 15000
+                  currency: USD
+                  customsClearanceMode: STANDARD
+                  clientReferenceNumber: CLIENT-REF-001
+                  exportLicense: EXP2024001
                   shipperInfo:
-                    name: "Global Logistics Ltd."
-                    address: "Room 301, Building A, Export Zone"
-                    city: "Hong Kong"
-                    country: "HK"
-                    state: "Hong Kong"
-                    zipCode: "999077"
-                    email: "ops@global-logistics.hk"
-                    phone: "+85298765432"
+                    name: Yang Ke
+                    address: Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1
+                    city: Shaoxing
+                    country: CN
+                    department: Zhejiang
+                    province: Shaoxing
+                    district: Shangyu
+                    street: Tangpu Town, Room 301, Building 1
+                    email: 442699119@qq.com
+                    phone: "+86-21-12345678"
+                    companyName: happiness childhood Store
+                    taxId: 91330100MA2XXXXXXX
                   itemList:
-                    - trackingId: "99PE03041663"
-                      bigBagNumber: "BB-PE-001"
-                    - trackingId: "99PE03041664"
-                      bigBagNumber: "BB-PE-001"
+                    - trackingId: 88M0030800
+                      bigBagNumber: BIGBAG508
+                  clientCode: CLX
       responses:
         '200':
           description: Manifest declaration received and processed successfully
@@ -477,7 +503,6 @@ paths:
         - `trackingId` must be unique across all parcel declarations
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/XClientSecretHeader'
         - $ref: '#/components/parameters/XTraceIdHeader'
         - $ref: '#/components/parameters/XSpanIdHeader'
         - $ref: '#/components/parameters/TraceparentHeader'
@@ -493,44 +518,76 @@ paths:
               standard_parcel:
                 summary: Standard Parcel Declaration for Peru
                 value:
-                  destinationCountryCode: "PE"
-                  trackingId: "99PE03041663"
+                  destinationCountryCode: PE
+                  trackingId: "889089"
+                  clientTrackingNumber: HAWB-1
                   grossWeight: "0.246"
-                  netWeight: "0.200"
-                  weightUom: "KG"
                   declaredValue: 10.14
                   pieces: 1
-                  currency: "USD"
-                  clientTrackingNumber: "EXT-TRACK-992"
+                  currency: USD
                   senderInfo:
-                    name: "Yang Ke"
-                    address: "Zhejiang Province, Shangyu District"
-                    city: "Shaoxing"
-                    country: "CN"
-                    state: "Zhejiang Province"
+                    name: Yang Ke
+                    address: CN, Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building A
+                    city: Shaoxing
+                    country: CN
+                    department: Zhejiang
+                    province: Shaoxing
+                    district: Shangyu
                     zipCode: "312000"
-                    email: "sender@example.cn"
+                    email: 442699119@qq.com
                     phone: "15137736988"
+                    companyName: happiness childhood Store
+                    taxId: 91330100MA2XXXXXXX
                   consigneeInfo:
-                    name: "Carlos Sanchez"
-                    address: "Av. Javier Prado Este 240, San Isidro"
-                    city: "San Isidro"
-                    country: "PE"
-                    state: "Lima"
-                    province: "Lima"
+                    name: lydia Escobar Cotal
+                    address: Av. Javier Prado Este 1234, San Isidro, Lima
+                    city: Lima
+                    country: PE
+                    department: Lima
+                    province: Lima
+                    district: San Isidro
                     zipCode: "15046"
-                    email: "carlos.sanchez@example.com"
-                    phone: "+51912345678"
-                    identificationType: "DNI"
+                    email: lya.escobar1986@gmail.com
+                    phone: "+51984904074"
+                    identificationType: DNI
                     identificationNumber: "12345678"
                   itemsList:
-                    - itemNumber: "1005005824455795_1"
-                      itemName: "Ropa Set"
+                    - itemNumber: 1005005824455795_1
+                      itemName: "Ropa Set, cosas"
                       quantity: 1
                       unitPrice: 10.14
                       totalPrice: 10.14
-                      currency: "USD"
-                      country: "CN"
+                      currency: USD
+                      barCode: ""
+                      hsCode: "6203420000"
+                      country: CN
+                      productUrl: http://www.aliexpress.com/item/1005005824455795.html
+                  customsClearanceMode: STANDARD
+                  netWeight: "0.246"
+                  freightPrice: 0.5
+                  insurancePrice: 0
+                  weightUom: KG
+                  dangerousGoods: false
+                  logisticsOrderCode: LP00718526345882
+                  lastmilePartnerCode: DISTRIBUTOR_30710422
+                  customsReference: CUSTOMS_REF_002
+                  invoiceNumber: INV2024001
+                  returnInfo:
+                    name: Returns Warehouse
+                    address: Av. Elmer Faucett s/n, Callao
+                    city: Callao
+                    country: PE
+                    department: Callao
+                    province: Callao
+                    district: Callao
+                    zipCode: "07031"
+                    email: returns@company.pe
+                    phone: "+5112345678"
+                  uniqueReferences:
+                    - key: ORDER_ID
+                      value: ORD123456789
+                    - key: PARTNER_REF
+                      value: REF987654321
       responses:
         '200':
           description: Parcel declaration received and processed successfully
@@ -834,7 +891,9 @@ components:
           example: USD
         dangerousGoods:
           type: boolean
+          description: Indicates if the parcel contains dangerous goods
           default: false
+          example: false
         bigBagId:
           type: string
           description: Big bag identifier
@@ -855,13 +914,16 @@ components:
           example: LP00717258464258
         lastmilePartnerCode:
           type: string
+          description: Identification code of the final mile delivery partner
           maxLength: 50
           example: DISTRIBUTOR_30710422
         customsReference:
           type: string
+          description: Reference number generated by customs authorities upon clearance
           maxLength: 100
         invoiceNumber:
           type: string
+          description: Commercial invoice number associated with the parcel
           maxLength: 100
         clientTrackingNumber:
           type: string
@@ -880,9 +942,9 @@ components:
           example: Importadora Chile SpA
         taxHasBeenPaid:
           type: string
-          description: Whether tax has been paid (Y/N)
-          enum: ['Y', 'N']
-          example: 'N'
+          description: Whether tax has been paid IVA_YES or IVA_NO for Chile
+          enum: ['IVA_YES', 'IVA_NO']
+          example: 'IVA_NO'
         senderInfo:
           $ref: '#/components/schemas/SenderInfo'
         consigneeInfo:
@@ -975,6 +1037,7 @@ components:
           maxLength: 500
         email:
           type: string
+          description: Email address
           format: email
           maxLength: 255
           example: shipper@example.com
@@ -985,11 +1048,14 @@ components:
           example: '+8615137736988'
         companyName:
           type: string
+          description: Company name
           maxLength: 255
+          example: Temu
         taxId:
           type: string
           description: Tax identification number
           maxLength: 50
+          example: 123456789
         uniqueReferences:
           type: array
           description: Optional array of key-value pairs for custom metadata (e.g., internal UUIDs, specific tax IDs).
@@ -1081,48 +1147,60 @@ components:
       properties:
         name:
           type: string
+          description: Sender name
           maxLength: 255
           example: Yang Ke
         address:
           type: string
+          description: Sender address
           maxLength: 1000
         city:
           type: string
+          description: Sender city
           maxLength: 100
           example: Shaoxing
         country:
           type: string
+          description: Sender country code
           minLength: 2
           maxLength: 2
           pattern: ^[A-Z]{2}$
           example: CN
         state:
           type: string
+          description: Sender state or province
           maxLength: 100
           example: Zhejiang Province
         zipCode:
           type: string
+          description: Sender zip code
           maxLength: 20
           example: '312000'
         street:
           type: string
+          description: Sender street address
           maxLength: 500
         email:
           type: string
           format: email
+          description: Sender email address
           maxLength: 255
         phone:
           type: string
+          description: Sender phone number
           maxLength: 50
           example: '15137736988'
         companyName:
           type: string
+          description: Sender company name
           maxLength: 255
         taxId:
           type: string
+          description: Sender tax ID
           maxLength: 50
         uniqueReferences:
           type: array
+          description: Sender unique references
           items:
             $ref: '#/components/schemas/UniqueReference'
     ConsigneeInfo:
@@ -1156,6 +1234,7 @@ components:
           example: San Isidro
         country:
           type: string
+          description: Consignee country code
           minLength: 2
           maxLength: 2
           pattern: ^[A-Z]{2}$
@@ -1182,19 +1261,23 @@ components:
           example: Lima
         zipCode:
           type: string
+          description: Postal or ZIP code
           maxLength: 20
           example: '15046'
         street:
           type: string
+          description: Street address
           maxLength: 500
           example: Av. Javier Prado Este 1234
         email:
           type: string
           format: email
+          description: Consignee email address
           maxLength: 255
           example: juan.perez@example.com
         phone:
           type: string
+          description: Consignee phone number
           maxLength: 50
           example: '+51912345678'
         identificationType:
@@ -1215,6 +1298,7 @@ components:
           example: '12345678'
         uniqueReferences:
           type: array
+          description: Unique references for the consignee
           items:
             $ref: '#/components/schemas/UniqueReference'
     ReturnInfo:
@@ -1231,19 +1315,25 @@ components:
       properties:
         name:
           type: string
+          description: Name for the return address
           maxLength: 255
+          example: Juan Pérez González
         address:
           type: string
+          description: Return address
           maxLength: 1000
+          example: Av. Libertador Bernardo O'Higgins 1234, Providencia, Santiago
         city:
           type: string
           description: City of the return address. For Chile, this is the comuna. For Peru, this is the city name.
           maxLength: 100
         country:
           type: string
+          description: ISO 2-letter country code for the return address
           minLength: 2
           maxLength: 2
           pattern: ^[A-Z]{2}$
+          example: CL
         state:
           type: string
           description: State or region. For Chile, this is the Región. For Peru, this can be used for department or state.
@@ -1262,19 +1352,25 @@ components:
           maxLength: 100
         zipCode:
           type: string
+          description: Postal or ZIP code
           maxLength: 20
         street:
           type: string
+          description: Street address for the return
           maxLength: 500
+          example: Calle Falsa 123
         email:
           type: string
           format: email
+          description: Email address
           maxLength: 255
         phone:
           type: string
+          description: Phone number
           maxLength: 50
         uniqueReferences:
           type: array
+          description: Optional array of key-value pairs for custom return metadata
           items:
             $ref: '#/components/schemas/UniqueReference'
     ItemInfo:
@@ -1295,21 +1391,27 @@ components:
           example: 10050058244557952
         itemName:
           type: string
+          description: Name or description of the item
           maxLength: 255
           example: Smartphone Case
         barCode:
           type: string
+          description: Identification barcode for the item
           maxLength: 50
+          example: 123456789012
         quantity:
           type: integer
+          description: Quantity of the item
           minimum: 1
           example: 1
         unitPrice:
           type: number
+          description: Price per single unit of the item
           minimum: 0
           example: 25
         totalPrice:
           type: number
+          description: Total price for all units of this item (unitPrice * quantity)
           minimum: 0
           example: 10.14
         fobValue:
@@ -1324,6 +1426,7 @@ components:
           example: 12.50
         currency:
           type: string
+          description: 3-letter ISO 4217 Currency Code
           maxLength: 3
           pattern: ^[A-Z]{3}$
           example: USD
@@ -1340,9 +1443,12 @@ components:
           pattern: ^[A-Z]{2}$
         productUrl:
           type: string
+          description: URL to the product page
           maxLength: 500
+          example: https://www.example.com/product/123
         uniqueReferences:
           type: array
+          description: Optional array of key-value pairs for custom item metadata
           items:
             $ref: '#/components/schemas/UniqueReference'
     UniqueReference:
@@ -1381,10 +1487,9 @@ components:
             - error
             - code
   securitySchemes:
-    bearerAuth:
+    basicAuth:
       type: http
-      scheme: bearer
-      bearerFormat: JWT
+      scheme: basic
     ApiKeyAuth:
       type: apiKey
       in: header
@@ -1420,11 +1525,11 @@ components:
       name: Authorization
       in: header
       required: true
-      description: Bearer token for authentication.
+      description: Basic Auth token for authentication.
       schema:
         type: string
-        pattern: ^Bearer\s[a-zA-Z0-9\-._~+/]+=*$
-        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        pattern: ^Basic\s[a-zA-Z0-9+=]+$
+        example: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
     ContentType:
       name: Content-Type
       in: header
@@ -1493,19 +1598,11 @@ components:
         type: string
         pattern: ^[A-Z]{2,10}$
         example: CLX
-    XClientSecretHeader:
-      name: x-client-secret
-      in: header
-      required: false
-      description: Client secret for authentication
-      schema:
-        type: string
-        example: client_secret_12345
     AuthorizationHeader:
       name: Authorization
       in: header
       required: true
-      description: Authorization header containing bearer token
+      description: Authorization header containing Basic Auth token
       schema:
         type: string
         example: Basic dXNlcm5hbWU6cGFzc3dvcmQ=

@@ -93,6 +93,8 @@ tags:
     description: Generic pre-alert declaration endpoints for Chile
   - name: Pre-Alert Peru
     description: Generic pre-alert declaration endpoints for Peru
+  - name: Pre-Alert Argentina
+    description: Generic pre-alert declaration endpoints for Argentina
 
 paths:
   /mawbs/cl:
@@ -633,6 +635,207 @@ paths:
                       code: "InternalServerErrorException"
                       message: "Internal server error"
                       details: []
+  /mawbs/ar:
+    post:
+      tags:
+        - Pre-Alert Argentina
+      operationId: submitManifestDeclareArgentina
+      summary: Submit Manifest Declaration (Argentina)
+      x-public: true
+      x-audience: pre-alert
+      x-category: Pre-Alert Argentina
+      description: |
+        Submits a **manifest** (MAWB) declaration for Argentina.
+
+        **Call this only after** you have submitted all related parcels via `POST /parcels/ar`. The manifest links previously declared parcels to the flight/shipment. The destination country is implicitly AR for this endpoint.
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+      requestBody:
+        required: true
+        description: Manifest declaration data for Argentina
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManifestDeclareRequest'
+            examples:
+              standard_manifest:
+                summary: Standard Manifest Declaration for Argentina
+                value:
+                  mawbNumber: "MAWB-2025-600"
+                  manifestNumber: "MAN-2025-600"
+                  destinationCountryCode: "AR"
+                  customsType: "INWARD"
+                  transportType: "AIR"
+                  transportNumber: "AR1300"
+                  fromPortCode: "HKG"
+                  toPortCode: "EZE"
+                  eta: "2026-03-20T18:30:00Z"
+                  etd: "2026-03-18T09:00:00Z"
+                  totalPackages: 1
+                  totalWeight: 250.5
+                  totalValue: 5000
+                  currency: "USD"
+                  customsClearanceMode: "STANDARD"
+                  clientReferenceNumber: "CLIENT-REF-AR-001"
+                  exportLicense: "EXP2024AR001"
+                  shipperInfo:
+                    name: "Temu Warehouse"
+                    address: "Zhejiang Province, Shaoxing, Tangpu Town, Room 301, Building A"
+                    city: "Shaoxing"
+                    country: "CN"
+                    state: "Zhejiang"
+                    street: "Tangpu Town, Room 301, Building A"
+                    email: "warehouse@example.com"
+                    phone: "+86-21-12345678"
+                    companyName: "Temu"
+                    taxId: "91330100MA2XXXXXXX"
+                  itemList:
+                    - trackingId: "SH-AR-123456789"
+                      bigBagNumber: "BIGBAG-AR-001"
+      responses:
+        '200':
+          description: Manifest declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManifestDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+  /parcels/ar:
+    post:
+      tags:
+        - Pre-Alert Argentina
+      operationId: submitParcelDeclareArgentina
+      summary: Submit Parcel Declaration (Argentina)
+      x-public: true
+      x-audience: pre-alert
+      x-category: Pre-Alert Argentina
+      description: |
+        Submits a **parcel** (HAWB) declaration for Argentina. **Call this first** before submitting the manifest.
+
+        This endpoint creates HAWB records and registers parcel-level details. After all parcels for a shipment are declared, use `POST /mawbs/ar` to submit the manifest.
+
+        **Argentina-specific requirements (example):**
+        - Consignee `province` (Provincia) is required
+        - `city` and `zipCode` should match valid Argentine postal codes
+        - `identificationType` should be `DNI` for Argentine nationals
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+      requestBody:
+        required: true
+        description: Parcel declaration data for Argentina
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParcelDeclareRequest'
+            examples:
+              standard_parcel:
+                summary: Standard Parcel Declaration for Argentina
+                value:
+                  destinationCountryCode: "AR"
+                  trackingId: "SH-AR-123456789"
+                  clientTrackingNumber: "AE-ORDER-AR-001"
+                  grossWeight: "0.750"
+                  declaredValue: 45.00
+                  pieces: 1
+                  currency: "USD"
+                  senderInfo:
+                    name: "Temu Warehouse"
+                    address: "Zhejiang Province, Shaoxing, Tangpu Town, Room 301, Building A"
+                    city: "Shaoxing"
+                    country: "CN"
+                    state: "Zhejiang Province"
+                    zipCode: "312000"
+                    email: "warehouse@example.com"
+                    phone: "15137736988"
+                    companyName: "Temu"
+                    taxId: "91330100MA2XXXXXXX"
+                  consigneeInfo:
+                    name: "Juan Pérez García"
+                    address: "Av. Santa Fe 1234, Palermo"
+                    city: "Buenos Aires"
+                    country: "AR"
+                    department: "Buenos Aires"
+                    province: "Buenos Aires"
+                    district: "Palermo"
+                    zipCode: "C1425"
+                    email: "juan.perez@example.com"
+                    phone: "+5491187654321"
+                    identificationType: "DNI"
+                    identificationNumber: "12345678"
+                  itemsList:
+                    - itemNumber: "1005005824455795_1"
+                      itemName: "Smartphone Case"
+                      quantity: 1
+                      unitPrice: 45.00
+                      totalPrice: 45.00
+                      currency: "USD"
+                      country: "CN"
+                      productUrl: "https://www.example.com/product/1005005824455795"
+                  customsClearanceMode: "STANDARD"
+                  netWeight: "0.650"
+                  freightPrice: 2.50
+                  insurancePrice: 0
+                  weightUom: "KG"
+                  dangerousGoods: false
+                  logisticsOrderCode: "LP00717258464258"
+                  lastmilePartnerCode: "DISTRIBUTOR_30710422"
+                  customsReference: "CUSTOMS_REF_AR_001"
+                  invoiceNumber: "INV-AR-2024-001"
+                  returnInfo:
+                    name: "Returns AR Warehouse"
+                    address: "Av. General Paz 1234"
+                    city: "Buenos Aires"
+                    country: "AR"
+                    state: "Buenos Aires"
+                    zipCode: "C1440"
+                    email: "returns.ar@example.com"
+                    phone: "+541123456789"
+      responses:
+        '200':
+          description: Parcel declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParcelDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
 components:
   schemas:
     ManifestDeclareRequest:

@@ -119,7 +119,7 @@ paths:
         **Chile-specific requirements:**
         - Consignee `city` field is required (communa)
         - `identificationType` should be `RUT` for Chilean nationals
-        - SII tax fields (`taxCompanyId`, `taxCompanyName`, `taxHasBeenPaid`) for customs compliance, where`taxHasBeenPaid` with possible values: `IVA_YES`, `IVA_NO`
+        - SII tax fields (`taxCompanyId`, `taxCompanyName`, `taxHasBeenPaid`) for customs compliance, where`taxHasBeenPaid` has possible values: `IVA_YES`, `IVA_NO`
         - FOB/CIF valuation breakdown supported at parcel and item level
         - `trackingId` must be unique across all parcel declarations
       parameters:

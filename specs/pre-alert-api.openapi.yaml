@@ -41,7 +41,7 @@ info:
     Once you have obtained the token, include it in all Pre-Alert API requests using these headers:
 
     - **Authorization header** (required): Token obtained from the IAM service.
-    - **x-client-code header** (required): Your unique client identifier (e.g., `CLX`)
+    - **x-client-code header** (required): Your unique client identifier (e.g., `NNM`)
 
     Authentication failures will result in an HTTP `401 Unauthorized` response.
 
@@ -175,7 +175,6 @@ paths:
                       totalPrice: 10.14
                       currency: "USD"
                       hsCode: "6203420000"
-                      country: "CN"
                       productUrl: "http://www.aliexpress.com/item/1005005824455795.html"
                   customsClearanceMode: "STANDARD"
                   netWeight: "0.246"
@@ -440,9 +439,7 @@ paths:
                       unitPrice: 10.14
                       totalPrice: 10.14
                       currency: "USD"
-                      barCode: ""
                       hsCode: "6203420000"
-                      country: "CN"
                       productUrl: "http://www.aliexpress.com/item/1005005824455795.html"
                   customsClearanceMode: "STANDARD"
                   netWeight: "0.246"
@@ -705,7 +702,6 @@ paths:
                       unitPrice: 45.00
                       totalPrice: 45.00
                       currency: "USD"
-                      country: "CN"
                       productUrl: "https://www.example.com/product/1005005824455795"
                   customsClearanceMode: "STANDARD"
                   netWeight: "0.650"
@@ -866,7 +862,7 @@ components:
           example: MANIFEST-2024-001
         destinationCountryCode:
           type: string
-          description: ISO 2-letter destination country code (example PE, CL)
+          description: ISO 2-letter destination country code (example PE, CL, AR)
           minLength: 2
           maxLength: 2
           pattern: ^[A-Z]{2}$
@@ -1021,7 +1017,7 @@ components:
       properties:
         destinationCountryCode:
           type: string
-          description: ISO 2-letter destination country code (example PE, CL)
+          description: ISO 2-letter destination country code (example PE, CL, AR)
           minLength: 2
           maxLength: 2
           pattern: ^[A-Z]{2}$
@@ -1619,12 +1615,6 @@ components:
           description: HS code - Tariff code for the item (example 6203420000, 8517.12.00)
           maxLength: 20
           example: '6203420000'
-        country:
-          type: string
-          description: Country of origin (example CN, US, VN)
-          minLength: 2
-          maxLength: 2
-          pattern: ^[A-Z]{2}$
         productUrl:
           type: string
           description: URL to the product page (example https://www.example.com/product/123)
@@ -1740,7 +1730,7 @@ components:
       schema:
         type: string
         pattern: ^[A-Z]{2,10}$
-        example: CLX
+        example: NNM
     AuthorizationHeader:
       name: Authorization
       in: header

@@ -5,8 +5,8 @@ info:
   description: |
     # Pre-Alert API
 
-    This API enables external partners to submit **parcel** and **manifest** declarations for shipments destined to **Chile** and **Peru**. It is designed to provide a unified integration experience across our service tiers with a single, consistent interface.
-    - Systems requiring parcel and manifest declaration capabilities for Chile-bound and Peru-bound shipments
+    This API enables external partners to submit **parcel** and **manifest** declarations for shipments destined to **Chile**, **Peru**, and **Argentina**. It is designed to provide a unified integration experience across our service tiers with a single, consistent interface.
+    - Systems requiring parcel and manifest declaration capabilities for Chile-bound, Peru-bound, and Argentina-bound shipments
     - Clients utilizing the generic pre-alert flow (identified by `x-client-code` header) with Basic Auth token authentication
 
     ## Authentication
@@ -17,6 +17,9 @@ info:
 
     Before using the Pre-Alert API, you must obtain a Basic Auth token via the machine-to-machine (M2M) authentication endpoint. Both internal services and external clients use this method.
 
+    **Getting your clientId and clientSecret:**
+    To obtain credentials for your integration, email `mauro.mangione@serhafen.com`. He will generate a `clientId` and `clientSecret` for your client and share them securely.
+
     **Token Endpoint:**
     ```
     POST https://api.serhafen-staging.andinolabs.tech/iam-service/v0/auth/m2m/token
@@ -26,8 +29,8 @@ info:
     curl -X POST "https://api.serhafen-staging.andinolabs.tech/iam-service/v0/auth/m2m/token" \
       -H "Content-Type: application/json" \
       -d '{
-        "clientId": "mm_ninety-nine_minutes-1772470713354",
-        "clientSecret": "5fVPuuPxSeFrPcXem7yvfU8m2xihj8YU"
+        "clientId": "<YOUR_CLIENT_ID>",
+        "clientSecret": "<YOUR_CLIENT_SECRET>"
       }' | jq .
     ```
     **Response:**
@@ -97,119 +100,6 @@ tags:
     description: Generic pre-alert declaration endpoints for Argentina
 
 paths:
-  /mawbs/cl:
-    post:
-      tags:
-        - Pre-Alert Chile
-      operationId: submitManifestDeclareChile
-      summary: Submit Manifest Declaration (Chile)
-      x-public: true
-      x-audience: pre-alert
-      x-category: Pre-Alert Chile
-      description: |
-        Submits a **manifest** (MAWB) declaration for Chile.
-
-        **Call this only after** you have submitted all related parcels via `POST /parcels/cl`. The manifest links previously declared parcels to the flight/shipment.
-        
-        **Country code validation**: The `destinationCountryCode` field must be set to `CL` for this endpoint. The API will validate and reject requests with any other country code.
-      parameters:
-        - $ref: '#/components/parameters/XClientCodeHeader'
-        - $ref: '#/components/parameters/AuthorizationHeader'
-        - $ref: '#/components/parameters/TraceparentHeader'
-      requestBody:
-        required: true
-        description: Manifest declaration data for Chile
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ManifestDeclareRequest'
-            examples:
-              standard_manifest:
-                summary: Standard Manifest Declaration
-                value:
-                  mawbNumber: "MAWB-2025-500"
-                  manifestNumber: "MAN-2025-500"
-                  destinationCountryCode: "CL"
-                  customsType: "INWARD"
-                  transportType: "AIR"
-                  transportNumber: "5Y8052"
-                  fromPortCode: "HKG"
-                  toPortCode: "SCL"
-                  eta: "2026-03-20T14:30:00Z"
-                  etd: "2026-03-18T08:15:00Z"
-                  totalPackages: 1
-                  totalWeight: 458
-                  totalValue: 15000
-                  currency: "USD"
-                  customsClearanceMode: "STANDARD"
-                  clientReferenceNumber: "CLIENT-REF-001"
-                  exportLicense: "EXP2024001"
-                  shipperInfo:
-                    name: "Yang Ke"
-                    address: "Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1"
-                    city: "Shaoxing"
-                    country: "CN"
-                    state: "Zhejiang"
-                    street: "Tangpu Town, Room 301, Building 1"
-                    email: "442699119@qq.com"
-                    phone: "+86-21-12345678"
-                    companyName: "happiness childhood Store"
-                    taxId: "91330100MA2XXXXXXX"
-                  itemList:
-                    - trackingId: "889000"
-                      bigBagNumber: "BIGBAG508"
-      responses:
-        '200':
-          description: Manifest declaration received and processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ManifestDeclareResponse'
-              examples:
-                success:
-                  summary: Successful manifest declaration
-                  value:
-                    success: true
-                    message: Request processed successfully
-                    mawbNumber: '2024001'
-                    totalParcels: 3
-                    processedParcels: 3                    
-        '400':
-          description: Bad request - Invalid data format or missing required fields
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
-        '401':
-          description: Unauthorized - Invalid client credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
-              examples:
-                unauthorized:
-                  summary: Unauthorized Example
-                  value:
-                    success: false
-                    error:
-                      code: "UnauthorizedException"
-                      message: "Unauthorized"
-                      details: []
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
-              examples:
-                internal_error:
-                  summary: Internal Server Error Example
-                  value:
-                    success: false
-                    error:
-                      code: "InternalServerErrorException"
-                      message: "Internal server error"
-                      details: []
   /parcels/cl:
     post:
       tags:
@@ -363,28 +253,28 @@ paths:
                       code: "InternalServerErrorException"
                       message: "Internal server error"
                       details: []
-  /mawbs/pe:
+  /mawbs/cl:
     post:
       tags:
-        - Pre-Alert Peru
-      operationId: submitManifestDeclarePeru
-      summary: Submit Manifest Declaration (Peru)
+        - Pre-Alert Chile
+      operationId: submitManifestDeclareChile
+      summary: Submit Manifest Declaration (Chile)
       x-public: true
       x-audience: pre-alert
-      x-category: Pre-Alert Peru
+      x-category: Pre-Alert Chile
       description: |
-        Submits a **manifest** (MAWB) declaration for Peru.
+        Submits a **manifest** (MAWB) declaration for Chile.
 
-        **Call this only after** you have submitted all related parcels via `POST /parcels/pe`. The manifest links previously declared parcels to the flight/shipment.
+        **Call this only after** you have submitted all related parcels via `POST /parcels/cl`. The manifest links previously declared parcels to the flight/shipment.
         
-        **Country code validation**: The `destinationCountryCode` field must be set to `PE` for this endpoint. The API will validate and reject requests with any other country code.
+        **Country code validation**: The `destinationCountryCode` field must be set to `CL` for this endpoint. The API will validate and reject requests with any other country code.
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
-        description: Manifest declaration data for Peru
+        description: Manifest declaration data for Chile
         content:
           application/json:
             schema:
@@ -395,12 +285,12 @@ paths:
                 value:
                   mawbNumber: "MAWB-2025-500"
                   manifestNumber: "MAN-2025-500"
-                  destinationCountryCode: "PE"
+                  destinationCountryCode: "CL"
                   customsType: "INWARD"
                   transportType: "AIR"
                   transportNumber: "5Y8052"
                   fromPortCode: "HKG"
-                  toPortCode: "LIM"
+                  toPortCode: "SCL"
                   eta: "2026-03-20T14:30:00Z"
                   etd: "2026-03-18T08:15:00Z"
                   totalPackages: 1
@@ -415,16 +305,14 @@ paths:
                     address: "Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1"
                     city: "Shaoxing"
                     country: "CN"
-                    department: "Zhejiang"
-                    province: "Shaoxing"
-                    district: "Shangyu"
+                    state: "Zhejiang"
                     street: "Tangpu Town, Room 301, Building 1"
                     email: "442699119@qq.com"
                     phone: "+86-21-12345678"
                     companyName: "happiness childhood Store"
                     taxId: "91330100MA2XXXXXXX"
                   itemList:
-                    - trackingId: "900000"
+                    - trackingId: "889000"
                       bigBagNumber: "BIGBAG508"
       responses:
         '200':
@@ -635,65 +523,69 @@ paths:
                       code: "InternalServerErrorException"
                       message: "Internal server error"
                       details: []
-  /mawbs/ar:
+  /mawbs/pe:
     post:
       tags:
-        - Pre-Alert Argentina
-      operationId: submitManifestDeclareArgentina
-      summary: Submit Manifest Declaration (Argentina)
+        - Pre-Alert Peru
+      operationId: submitManifestDeclarePeru
+      summary: Submit Manifest Declaration (Peru)
       x-public: true
       x-audience: pre-alert
-      x-category: Pre-Alert Argentina
+      x-category: Pre-Alert Peru
       description: |
-        Submits a **manifest** (MAWB) declaration for Argentina.
+        Submits a **manifest** (MAWB) declaration for Peru.
 
-        **Call this only after** you have submitted all related parcels via `POST /parcels/ar`. The manifest links previously declared parcels to the flight/shipment. The destination country is implicitly AR for this endpoint.
+        **Call this only after** you have submitted all related parcels via `POST /parcels/pe`. The manifest links previously declared parcels to the flight/shipment.
+        
+        **Country code validation**: The `destinationCountryCode` field must be set to `PE` for this endpoint. The API will validate and reject requests with any other country code.
       parameters:
         - $ref: '#/components/parameters/XClientCodeHeader'
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/TraceparentHeader'
       requestBody:
         required: true
-        description: Manifest declaration data for Argentina
+        description: Manifest declaration data for Peru
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ManifestDeclareRequest'
             examples:
               standard_manifest:
-                summary: Standard Manifest Declaration for Argentina
+                summary: Standard Manifest Declaration
                 value:
-                  mawbNumber: "MAWB-2025-600"
-                  manifestNumber: "MAN-2025-600"
-                  destinationCountryCode: "AR"
+                  mawbNumber: "MAWB-2025-500"
+                  manifestNumber: "MAN-2025-500"
+                  destinationCountryCode: "PE"
                   customsType: "INWARD"
                   transportType: "AIR"
-                  transportNumber: "AR1300"
+                  transportNumber: "5Y8052"
                   fromPortCode: "HKG"
-                  toPortCode: "EZE"
-                  eta: "2026-03-20T18:30:00Z"
-                  etd: "2026-03-18T09:00:00Z"
+                  toPortCode: "LIM"
+                  eta: "2026-03-20T14:30:00Z"
+                  etd: "2026-03-18T08:15:00Z"
                   totalPackages: 1
-                  totalWeight: 250.5
-                  totalValue: 5000
+                  totalWeight: 458
+                  totalValue: 15000
                   currency: "USD"
                   customsClearanceMode: "STANDARD"
-                  clientReferenceNumber: "CLIENT-REF-AR-001"
-                  exportLicense: "EXP2024AR001"
+                  clientReferenceNumber: "CLIENT-REF-001"
+                  exportLicense: "EXP2024001"
                   shipperInfo:
-                    name: "Temu Warehouse"
-                    address: "Zhejiang Province, Shaoxing, Tangpu Town, Room 301, Building A"
+                    name: "Yang Ke"
+                    address: "Zhejiang Province, Shaoxing, Shangyu District, Tangpu Town, Room 301, Building 1"
                     city: "Shaoxing"
                     country: "CN"
-                    state: "Zhejiang"
-                    street: "Tangpu Town, Room 301, Building A"
-                    email: "warehouse@example.com"
+                    department: "Zhejiang"
+                    province: "Shaoxing"
+                    district: "Shangyu"
+                    street: "Tangpu Town, Room 301, Building 1"
+                    email: "442699119@qq.com"
                     phone: "+86-21-12345678"
-                    companyName: "Temu"
+                    companyName: "happiness childhood Store"
                     taxId: "91330100MA2XXXXXXX"
                   itemList:
-                    - trackingId: "SH-AR-123456789"
-                      bigBagNumber: "BIGBAG-AR-001"
+                    - trackingId: "900000"
+                      bigBagNumber: "BIGBAG508"
       responses:
         '200':
           description: Manifest declaration received and processed successfully
@@ -701,6 +593,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManifestDeclareResponse'
+              examples:
+                success:
+                  summary: Successful manifest declaration
+                  value:
+                    success: true
+                    message: Request processed successfully
+                    mawbNumber: '2024001'
+                    totalParcels: 3
+                    processedParcels: 3                    
         '400':
           description: Bad request - Invalid data format or missing required fields
           content:
@@ -713,12 +614,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Unauthorized Example
+                  value:
+                    success: false
+                    error:
+                      code: "UnauthorizedException"
+                      message: "Unauthorized"
+                      details: []
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericErrorResponse'
+              examples:
+                internal_error:
+                  summary: Internal Server Error Example
+                  value:
+                    success: false
+                    error:
+                      code: "InternalServerErrorException"
+                      message: "Internal server error"
+                      details: []
   /parcels/ar:
     post:
       tags:
@@ -818,6 +737,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ParcelDeclareResponse'
+        '400':
+          description: Bad request - Invalid data format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '401':
+          description: Unauthorized - Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+  /mawbs/ar:
+    post:
+      tags:
+        - Pre-Alert Argentina
+      operationId: submitManifestDeclareArgentina
+      summary: Submit Manifest Declaration (Argentina)
+      x-public: true
+      x-audience: pre-alert
+      x-category: Pre-Alert Argentina
+      description: |
+        Submits a **manifest** (MAWB) declaration for Argentina.
+
+        **Call this only after** you have submitted all related parcels via `POST /parcels/ar`. The manifest links previously declared parcels to the flight/shipment. The destination country is implicitly AR for this endpoint.
+      parameters:
+        - $ref: '#/components/parameters/XClientCodeHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TraceparentHeader'
+      requestBody:
+        required: true
+        description: Manifest declaration data for Argentina
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManifestDeclareRequest'
+            examples:
+              standard_manifest:
+                summary: Standard Manifest Declaration for Argentina
+                value:
+                  mawbNumber: "MAWB-2025-600"
+                  manifestNumber: "MAN-2025-600"
+                  destinationCountryCode: "AR"
+                  customsType: "INWARD"
+                  transportType: "AIR"
+                  transportNumber: "AR1300"
+                  fromPortCode: "HKG"
+                  toPortCode: "EZE"
+                  eta: "2026-03-20T18:30:00Z"
+                  etd: "2026-03-18T09:00:00Z"
+                  totalPackages: 1
+                  totalWeight: 250.5
+                  totalValue: 5000
+                  currency: "USD"
+                  customsClearanceMode: "STANDARD"
+                  clientReferenceNumber: "CLIENT-REF-AR-001"
+                  exportLicense: "EXP2024AR001"
+                  shipperInfo:
+                    name: "Temu Warehouse"
+                    address: "Zhejiang Province, Shaoxing, Tangpu Town, Room 301, Building A"
+                    city: "Shaoxing"
+                    country: "CN"
+                    state: "Zhejiang"
+                    street: "Tangpu Town, Room 301, Building A"
+                    email: "warehouse@example.com"
+                    phone: "+86-21-12345678"
+                    companyName: "Temu"
+                    taxId: "91330100MA2XXXXXXX"
+                  itemList:
+                    - trackingId: "SH-AR-123456789"
+                      bigBagNumber: "BIGBAG-AR-001"
+      responses:
+        '200':
+          description: Manifest declaration received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManifestDeclareResponse'
         '400':
           description: Bad request - Invalid data format or missing required fields
           content:

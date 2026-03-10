@@ -67,7 +67,7 @@ info:
 
     **Endpoints must be called in the following order:**
 
-    1. **Step 1: Parcel Declaration** — Call `POST /parcels/cl` (for Chile) or `POST /parcels/pe` (for Peru) for each parcel (or batch of parcels). This creates HAWB (House Air Waybill) records and registers parcel-level details with customs authorities.
+    1. **Step 1: Parcel Declaration** — Call `POST /parcels/cl` (for Chile), `POST /parcels/pe` (for Peru) or `POST /parcels/ar` (for Argentina) for each parcel (or batch of parcels). This creates HAWB (House Air Waybill) records and registers parcel-level details with customs authorities.
     2. **Step 2: Manifest Declaration** — After all parcels have been successfully declared, call `POST /mawbs/cl` (for Chile) or `POST /mawbs/pe` (for Peru) once to submit the manifest. This creates the MAWB (Master Air Waybill) and associates the previously declared parcels with the flight or shipment. **Note:** The `trackingId` included in the manifest's `itemList` MUST exactly match the `trackingId` used in the corresponding parcel declarations.
 
     Submitting the manifest before declaring all parcels may result in validation errors, incomplete customs data, or processing delays.
@@ -119,7 +119,7 @@ paths:
         **Chile-specific requirements:**
         - Consignee `city` field is required (communa)
         - `identificationType` should be `RUT` for Chilean nationals
-        - SII tax fields (`taxCompanyId`, `taxCompanyName`) for customs compliance
+        - SII tax fields (`taxCompanyId`, `taxCompanyName`, `taxHasBeenPaid`) for customs compliance, where`taxHasBeenPaid` with possible values: `IVA_YES`, `IVA_NO`
         - FOB/CIF valuation breakdown supported at parcel and item level
         - `trackingId` must be unique across all parcel declarations
       parameters:
@@ -183,8 +183,6 @@ paths:
                   insurancePrice: 0
                   weightUom: "KG"
                   dangerousGoods: false
-                  logisticsOrderCode: "LP00718526345882"
-                  lastmilePartnerCode: "DISTRIBUTOR_30710422"
                   customsReference: "CUSTOMS_REF_002"
                   invoiceNumber: "INV2024001"
                   taxCompanyId: "76546789-K"
@@ -452,8 +450,6 @@ paths:
                   insurancePrice: 0
                   weightUom: "KG"
                   dangerousGoods: false
-                  logisticsOrderCode: "LP00718526345882"
-                  lastmilePartnerCode: "DISTRIBUTOR_30710422"
                   customsReference: "CUSTOMS_REF_002"
                   invoiceNumber: "INV2024001"
                   returnInfo:
@@ -1019,6 +1015,9 @@ components:
         - senderInfo
         - consigneeInfo
         - itemsList
+        - weightUom
+        - freightPrice
+        - insurancePrice
       properties:
         destinationCountryCode:
           type: string
@@ -1058,11 +1057,6 @@ components:
           description: FOB value - the declared commercial value of goods at origin port excluding international shipping and insurance (example 25, 10.14)
           minimum: 0.01
           example: 25
-        fobValue:
-          type: number
-          description: FOB (Free On Board) value in declared currency (example 10.14)
-          minimum: 0
-          example: 10.14
         cifValue:
           type: number
           description: CIF (Cost, Insurance, Freight) value in declared currency (example 12.50)
@@ -1094,11 +1088,6 @@ components:
           description: Indicates if the parcel contains dangerous goods
           default: false
           example: false
-        bigBagId:
-          type: string
-          description: Big bag identifier (example BB-PE-001, BIGBAG-2026-001)
-          maxLength: 50
-          example: BB-PE-001
         batchNumber:
           type: string
           description: Batch number for grouping (example BATCH-20260308-001)
@@ -1612,11 +1601,6 @@ components:
         totalPrice:
           type: number
           description: Total price for all units of this item - unitPrice * quantity (example 10.14, 25.98, 50.00)
-          minimum: 0
-          example: 10.14
-        fobValue:
-          type: number
-          description: FOB (Free On Board) value for this item (example 10.14, 20.00)
           minimum: 0
           example: 10.14
         cifValue:

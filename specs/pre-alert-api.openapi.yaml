@@ -76,17 +76,17 @@ info:
 
     | Environment   | Base URL                                                 | Purpose                                |
     |---------------|----------------------------------------------------------|----------------------------------------|
-    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert`     | Live traffic and real declarations     |
-    | **Staging**   | `https://api.serhafen-staging.andinolabs.tech/pre-alert` | Testing and integration validation     |
+    | **Production**| `https://api.serhafen.tech/pre-alert`     | Live traffic and real declarations     |
+    | **Staging**   | `https://api.staging.serhafen.tech/pre-alert` | Testing and integration validation     |
     | **Local**     | `/pre-alert` (relative to your host)                     | Development and local testing only     |
   contact:
     name: Platform Support
     email: platform-support@serhafen.com
 
 servers:
-  - url: https://api.serhafen-net.andinolabs.tech/pre-alert
+  - url: https://api.serhafen.tech/pre-alert
     description: Production – use for live declarations
-  - url: https://api.serhafen-staging.andinolabs.tech/pre-alert
+  - url: https://api.staging.serhafen.tech/pre-alert
     description: Staging – use for testing and integration
   - url: /pre-alert
     description: Local/Development

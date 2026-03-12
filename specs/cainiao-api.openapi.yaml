@@ -66,11 +66,11 @@ paths:
       tags:
         - Cainiao Integration
       servers:
-        - url: https://api.serhafen-net.andinolabs.tech/customs
-          description: Production – use for live Cainiao declarations
-        - url: https://tech.andinolabs.com/customs
-          description: Staging – use for testing and integration
-        - url: /customs
+          - url: https://api.serhafen.tech/pre-alert
+            description: Production – use for live Cainiao declarations
+          - url: https://api.staging.serhafen.tech/pre-alert
+            description: Staging – use for testing and integration
+        - url: /pre-alert
           description: Local/Development
 components:
   schemas:

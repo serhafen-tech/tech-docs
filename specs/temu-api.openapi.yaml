@@ -68,16 +68,16 @@ info:
 
     | Environment   | Base URL                                                 | Use case               |
     |---------------|----------------------------------------------------------|------------------------|
-    | **Production**| `https://api.serhafen-net.andinolabs.tech/pre-alert`     | Live Temu declarations |
-    | **Staging**   | `https://api.serhafen-staging.andinolabs.tech/pre-alert` | Testing and integration|
+    | **Production**| `https://api.serhafen.tech/pre-alert`     | Live Temu declarations |
+    | **Staging**   | `https://api.staging.serhafen.tech/pre-alert` | Testing and integration|
     | **Local**     | `/pre-alert` (relative to your host)                     | Development only       |
   contact:
     name: Platform Support
     email: platform-support@serhafen.com
 servers:
-  - url: https://api.serhafen-net.andinolabs.tech/pre-alert
+  - url: https://api.serhafen.tech/pre-alert
     description: Production – use for live Temu declarations
-  - url: https://api.serhafen-staging.andinolabs.tech/pre-alert
+  - url: https://api.staging.serhafen.tech/pre-alert
     description: Staging – use for testing and integration
   - url: /pre-alert
     description: Local/Development

@@ -65,13 +65,13 @@ paths:
                     content: eyJzdWNjZXNzIjpmYWxzZSwiZXJyb3JDb2RlIjoiSU5URVJOQUxfU0VSVkVSX0VSUk9SIiwiZXJyb3JNc2ciOiJBbiB1bmV4cGVjdGVkIGVycm9yIG9jY3VycmVkIHdoaWxlIHByb2Nlc3NpbmcgdGhlIGRlY2xhcmF0aW9uIiwiY29wTm8iOiIiLCJ3YXlCaWxsTm8iOiIiLCJtYXN0ZXJXYXlCaWxsIjoiIn0=
       tags:
         - Cainiao Integration
-        servers:
-          - url: https://api.serhafen.tech/pre-alert
-            description: Production – use for live Cainiao declarations
-          - url: https://api.staging.serhafen.tech/pre-alert
-            description: Staging – use for testing and integration
-          - url: /pre-alert
-            description: Local/Development
+      servers:
+        - url: https://api.serhafen.tech/pre-alert
+          description: Production – use for live Cainiao declarations
+        - url: https://api.staging.serhafen.tech/pre-alert
+          description: Staging – use for testing and integration
+        - url: /pre-alert
+          description: Local/Development
 components:
   schemas:
     CainiaoDeclareRequest:

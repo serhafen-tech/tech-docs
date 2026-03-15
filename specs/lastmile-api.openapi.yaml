@@ -597,7 +597,7 @@ paths:
         This endpoint receives status updates from last-mile delivery partners.
 
         **Authentication Requirements:**
-        - `api-key` header: Partner-specific API key
+        - `x-api-key` header: Partner-specific API key
         - `executor-name` header: Partner executor code (DNT, SAVAR, ENVIAME, etc.)
 
         **Process Flow:**
@@ -2434,7 +2434,7 @@ components:
     ApiKeyAuth:
       type: apiKey
       in: header
-      name: api-key
+      name: x-api-key
       description: API key for authentication
     ExecutorAuth:
       type: apiKey
@@ -2615,14 +2615,6 @@ components:
         type: string
         pattern: ^[A-Z]{2,10}$
         example: CLX
-    XClientSecretHeader:
-      name: x-client-secret
-      in: header
-      required: false
-      description: Client secret for authentication
-      schema:
-        type: string
-        example: client_secret_12345
     AuthorizationHeader:
       name: Authorization
       in: header
@@ -2631,6 +2623,14 @@ components:
       schema:
         type: string
         example: Bearer <token>
+    XClientSecretHeader:
+      name: x-client-secret
+      in: header
+      required: false
+      description: Client secret for authentication
+      schema:
+        type: string
+        example: client_secret_12345
 tags:
   - name: Auth
     description: Auth operations

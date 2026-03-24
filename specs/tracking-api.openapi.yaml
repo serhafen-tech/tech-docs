@@ -322,10 +322,6 @@ paths:
         - Cross-country queries are allowed (user authenticated for AR can query PE data)
         - Returns 404 if tracking ID not found in specified country schema
         
-        **Performance:**
-        - Average response time: 150-250ms
-        - Optimized batch fetch pattern
-        - 40-60% faster than previous implementation
       
       operationId: getMawbStatusHistory
       tags:

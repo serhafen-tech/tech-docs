@@ -319,7 +319,6 @@ paths:
         
         **Important Notes:**
         - The `countryCode` query parameter determines which database schema to query
-        - Cross-country queries are allowed (user authenticated for AR can query PE data)
         - Returns 404 if tracking ID not found in specified country schema
         
       
@@ -510,6 +509,13 @@ paths:
                 statusCode: 500
                 message: "Internal server error"
                 error: "Internal Server Error"
+      servers:
+        - url: https://api.serhafen.tech
+          description: Production API
+        - url: https://api.staging.serhafen.tech
+          description: Staging API
+        - url: http://localhost:3000
+          description: Local/Development API
 components:
   securitySchemes:
     bearerAuth:

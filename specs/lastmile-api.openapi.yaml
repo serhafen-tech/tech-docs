@@ -329,6 +329,9 @@ paths:
         Retrieves consolidated tracking information for a given tracking number.
         Combines data from customs clearance and last-mile delivery stages.
 
+        ** Important:** This endpoint is only available for clients with **S2 (Status Tracker Service)** enabled.
+        Contact Serhafen support to enable this service for your account.
+
         **Key Features:**
         - **Consolidated Tracking**: Combines customs clearance and last-mile delivery statuses
         - **Multi-Language Support**: Status descriptions available in English and Spanish

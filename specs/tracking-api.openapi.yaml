@@ -1,0 +1,1134 @@
+openapi: 3.1.0
+info:
+  title: Tracking API
+  version: 1.0.0
+  description: Public API for shipment tracking
+  contact:
+    name: Platform Support
+    email: platform-support@serhafen.com
+servers:
+  - url: https://api.serhafen-net.andinolabs.tech
+    description: Production API
+  - url: https://tech.andinolabs.com
+    description: Staging API
+  - url: http://localhost:3001
+    description: Local/Development API
+paths:
+  /v0/auth/m2m/token:
+    post:
+      summary: Machine-to-Machine authentication using client credentials
+      description: Obtains an access token for service-to-service authentication using client credentials grant
+      operationId: getM2MToken
+      parameters:
+        - name: traceParent
+          in: header
+          required: false
+          description: Unique trace identifier for distributed tracing.
+          schema:
+            type: string
+            pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2MTokenRequest'
+            examples:
+              m2m_example:
+                summary: Service account authentication
+                value:
+                  clientId: tracking-service-client
+                  clientSecret: tracking-service-secret-2024
+      responses:
+        '200':
+          description: M2M token obtained successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/M2MTokenSuccessResponse'
+        '400':
+          description: Invalid request or missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+      security: []
+      tags:
+        - Auth
+  /last-mile/package/{trackingNumber}:
+    get:
+      operationId: trackPackage
+      summary: Get consolidated tracking data for a shipment
+      description: |
+        Retrieves consolidated tracking information for a given tracking number.
+        Combines data from customs clearance and last-mile delivery stages.
+
+        **⚠️ Important:** This endpoint is only available for clients with **S2 (Status Tracker Service)** enabled.
+        Contact Serhafen support to enable this service for your account.
+
+        **Key Features:**
+        - **Consolidated Tracking**: Combines customs clearance and last-mile delivery statuses
+        - **Multi-Language Support**: Status descriptions available in English and Spanish
+        - **Localized Stage Names**: User-friendly stage names for better customer experience
+        - **Timezone Conversion**: Timestamps provided in both UTC and local timezone with city/country context
+        - **Evidence Attachments**: Proof of delivery URLs (tracking links, signatures, photos) when available
+
+        **Tracking Number Format:**
+        - Pattern: `SH[0|1]XX##########CC`
+        - `SH`: Serhafen prefix (fixed)
+        - `0|1`: Client type identifier
+        - `XX`: Client code (e.g., 01, 02, 03)
+        - `##########`: 9-digit sequence number
+        - `CC`: 2-letter ISO country code (CL, PE, CO)
+        - Example: `SH011234567890PE`
+
+        **Response Format:**
+        - Statuses are sorted by occurrence time (oldest first)
+        - Latest status updates are prioritized (up to 2 occurrences per status code)
+        - All timestamps include both UTC and local timezone information
+        - Evidence field is always present but may be empty if no evidence is available
+      parameters:
+        - name: trackingNumber
+          in: path
+          required: true
+          description: |
+            Tracking number in Serhafen format.
+            Must match pattern: SH[0|1]XX##########CC where XX is client code (01-03) and CC is country code (CL, PE, CO, AR, US)
+          schema:
+            type: string
+            pattern: '^SH[01]\d{2}\d{9}[A-Z]{2}$'
+            example: SH011234567890PE
+        - name: traceparent
+          in: header
+          required: false
+          description: W3C Trace Context traceparent header for distributed tracing support
+          schema:
+            type: string
+            pattern: '^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$'
+            example: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+      responses:
+        '200':
+          description: Successfully retrieved consolidated tracking data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsolidatedTrackingResponse'
+              examples:
+                deliveredWithEvidence:
+                  summary: Delivered package with evidence URLs (Peru)
+                  description: Delivery confirmed with proof of delivery URLs
+                  value:
+                    version: '1.0'
+                    trackingNumber: SH011234567890PE
+                    clientId: '01'
+                    countryCode: PE
+                    statuses:
+                      - stage: INWARD_CUSTOMS
+                        stageDescription:
+                          en: Customs Clearance
+                          es: Despacho Aduanero
+                        code: 2030
+                        key: CUSTOMS_STARTED
+                        iconURL: https://icons.serhafen.com/customs-started.png
+                        statusDescription:
+                          en: Customs clearance started
+                          es: Inicio de despacho aduanero
+                        occuredAt:
+                          localTZ: '2025-12-01T10:00:00-05:00'
+                          UTC: '2025-12-01T15:00:00Z'
+                          city: Lima
+                          country: PE
+                        errors: []
+                        evidence: []
+                        observation: null
+                      - stage: LAST_MILE
+                        stageDescription:
+                          en: Last Mile Delivery
+                          es: Entrega de Última Milla
+                        code: 7050
+                        key: DELIVERED
+                        iconURL: https://icons.serhafen.com/delivered.png
+                        statusDescription:
+                          en: Package delivered successfully
+                          es: Paquete entregado exitosamente
+                        occuredAt:
+                          localTZ: '2025-12-05T14:30:00-05:00'
+                          UTC: '2025-12-05T19:30:00Z'
+                          city: Lima
+                          country: PE
+                        errors: []
+                        evidence:
+                          - https://track.abc.pe/TRK123456
+                          - https://proof-delivery.abc.pe/signature-TRK123456.jpg
+                        observation: null
+                deliveredWithoutEvidence:
+                  summary: Delivered package without evidence
+                  description: Delivery confirmed but no proof of delivery URLs available
+                  value:
+                    version: '1.0'
+                    trackingNumber: SH011234567891PE
+                    clientId: '01'
+                    countryCode: PE
+                    statuses:
+                      - stage: LAST_MILE
+                        stageDescription:
+                          en: Last Mile Delivery
+                          es: Entrega de Última Milla
+                        code: 7050
+                        key: DELIVERED
+                        iconURL: https://icons.serhafen.com/delivered.png
+                        statusDescription:
+                          en: Package delivered successfully
+                          es: Paquete entregado exitosamente
+                        occuredAt:
+                          localTZ: '2025-12-05T14:30:00-05:00'
+                          UTC: '2025-12-05T19:30:00Z'
+                          city: Lima
+                          country: PE
+                        errors: []
+                        evidence: []
+                        observation: null
+                inTransitNoEvidence:
+                  summary: Package in transit (Chile)
+                  description: Package currently in delivery - no evidence available yet
+                  value:
+                    version: '1.0'
+                    trackingNumber: SH021234567890CL
+                    clientId: '02'
+                    countryCode: CL
+                    statuses:
+                      - stage: INWARD_CUSTOMS
+                        stageDescription:
+                          en: Customs Clearance
+                          es: Despacho Aduanero
+                        code: 2030
+                        key: CUSTOMS_STARTED
+                        iconURL: https://icons.serhafen.com/customs-started.png
+                        statusDescription:
+                          en: Customs clearance started
+                          es: Inicio de despacho aduanero
+                        occuredAt:
+                          localTZ: '2025-12-01T10:00:00-03:00'
+                          UTC: '2025-12-01T13:00:00Z'
+                          city: Santiago
+                          country: CL
+                        errors: []
+                        evidence: []
+                        observation: null
+                      - stage: LAST_MILE
+                        stageDescription:
+                          en: Last Mile Delivery
+                          es: Entrega de Última Milla
+                        code: 7020
+                        key: IN_TRANSIT
+                        iconURL: https://icons.serhafen.com/in-transit.png
+                        statusDescription:
+                          en: Package in transit
+                          es: Paquete en tránsito
+                        occuredAt:
+                          localTZ: '2025-12-03T09:15:00-03:00'
+                          UTC: '2025-12-03T12:15:00Z'
+                          city: Santiago
+                          country: CL
+                        errors: []
+                        evidence: []
+                        observation: null
+        '400':
+          description: Bad request - Missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsolidatedErrorResponse'
+              examples:
+                missingTrackingId:
+                  summary: Missing tracking number parameter
+                  value:
+                    traceParent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+                    status: BAD_REQUEST
+                    dateTime: '2024-03-15T15:22:34.456Z'
+                    errors:
+                      - key: MISSING_PARAMETERS
+                        value: trackingNumber is missing
+                invalidFormat:
+                  summary: Invalid tracking number format
+                  value:
+                    traceParent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+                    status: ERROR
+                    dateTime: '2024-03-15T15:22:34.456Z'
+                    errors:
+                      - key: INVALID_TRACKING_NUMBER
+                        value: 'Invalid tracking number format: INVALID123'
+        '404':
+          description: Not Found - Tracking data not found for the given tracking number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsolidatedErrorResponse'
+              examples:
+                notFound:
+                  summary: No tracking data found from either source
+                  value:
+                    traceParent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+                    status: ERROR
+                    dateTime: '2024-03-15T15:22:34.456Z'
+                    errors:
+                      - key: CUSTOMS_DATA_NOT_FOUND
+                        value: 'Customs data not found for tracking number: SH019999999999PE'
+                      - key: LAST_MILE_DATA_NOT_FOUND
+                        value: 'Last Mile data not found for tracking number: SH019999999999PE'
+        '500':
+          description: Internal Server Error - Unexpected error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsolidatedErrorResponse'
+              examples:
+                serverError:
+                  summary: Generic server error
+                  value:
+                    traceParent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+                    status: INTERNAL_SERVER_ERROR
+                    dateTime: '2024-03-15T15:22:34.456Z'
+                    errors:
+                      - key: EXCEPTION
+                        value: 'Failed to fetch tracking data: Internal error occurred'
+      security: []
+      tags:
+        - Tracking
+  /customs/v0/mawb/detail/status-history:
+    get:
+      summary: Get HAWB Customs Status History
+      description: |
+        Retrieves detailed customs clearance tracking history for a shipment including:
+        - HAWB (House Air Waybill) information
+        - Complete status history (up to 30 most recent updates)
+        - Customs clearance status details
+        
+        **Important Notes:**
+        - The `countryCode` query parameter determines which database schema to query
+        - Cross-country queries are allowed (user authenticated for AR can query PE data)
+        - Returns 404 if tracking ID not found in specified country schema
+        
+        **Performance:**
+        - Average response time: 150-250ms
+        - Optimized batch fetch pattern
+        - 40-60% faster than previous implementation
+      
+      operationId: getMawbStatusHistory
+      tags:
+        - Customs Status Updates
+      
+      security:
+        - bearerAuth: []
+      
+      parameters:
+        - name: trackingId
+          in: query
+          required: true
+          description: |
+            Last mile tracking number (HAWB identifier).
+            
+            **Format:** Alphanumeric string
+            **Example:** `KXC412212568`
+          schema:
+            type: string
+            minLength: 1
+            example: "KXC412212568"
+        
+        - name: countryCode
+          in: query
+          required: true
+          description: |
+            ISO 3166-1 alpha-2 country code.
+            
+            **Format:** Exactly 2 letters (case insensitive)
+            **Example:** `PE`, `AR`, `CL`, `MX`, `CO`
+            
+            Determines which database schema to query.
+          schema:
+            type: string
+            pattern: '^[A-Za-z]{2}$'
+            example: "PE"
+            enum:
+              - PE
+              - AR
+              - CL
+              - MX
+              - CO
+        
+        - name: Authorization
+          in: header
+          required: true
+          description: |
+            Bearer token for authentication.
+            
+            **Format:** `Bearer <token>`
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        
+        - name: x-business-unit
+          in: header
+          required: true
+          description: |
+            Business unit identifier for multi-tenant routing.
+            
+            **Example:** `serhafen`
+          schema:
+            type: string
+            example: "serhafen"
+        
+        - name: x-country-code
+          in: header
+          required: true
+          description: |
+            User's authenticated country context.
+            
+            **Example:** `AR`
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+            example: "AR"
+      
+      responses:
+        '200':
+          description: Successfully retrieved customs tracking history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MawbStatusHistoryResponse'
+              examples:
+                typical_shipment_peru:
+                  summary: Typical shipment with customs statuses (Peru)
+                  value:
+                    trackingId: "KXC412212568"
+                    isActive: true
+                    lastUpdatedAt: "2024-01-15T10:30:00.000Z"
+                    lastSeenLocation:
+                      country: "PE"
+                      state: ""
+                      lastSourceUpdatedAt:
+                        localTZ: "2024-01-15 05:30:00"
+                        UTC: "2024-01-15T10:30:00.000Z"
+                    statuses:
+                      - code: "2001"
+                        key: "Canal Verde"
+                        description: "Green Channel - No inspection required"
+                        lastSeenLocation:
+                          country: "PE"
+                          state: "Lima"
+                          lastSeenAt:
+                            localTZ: "2024-01-15 05:30:00"
+                            UTC: "2024-01-15T10:30:00.000Z"
+                        lastUpdatedAt: "2024-01-15T10:30:00.000Z"
+                        errors: null
+                        meta: null
+                customs_inspection:
+                  summary: Shipment requiring customs inspection (Chile)
+                  value:
+                    trackingId: "XYZ987654321"
+                    isActive: true
+                    lastUpdatedAt: "2024-01-18T14:20:00.000Z"
+                    lastSeenLocation:
+                      country: "CL"
+                      state: ""
+                      lastSourceUpdatedAt:
+                        localTZ: "2024-01-18 10:20:00"
+                        UTC: "2024-01-18T14:20:00.000Z"
+                    statuses:
+                      - code: "2500"
+                        key: "Pending Customs Inspection"
+                        description: "Shipment held for customs verification"
+                        lastSeenLocation:
+                          country: "CL"
+                          state: "Santiago"
+                          lastSeenAt:
+                            localTZ: "2024-01-18 10:20:00"
+                            UTC: "2024-01-18T14:20:00.000Z"
+                        lastUpdatedAt: "2024-01-18T14:20:00.000Z"
+                        errors: null
+                        meta: null
+        
+        '400':
+          description: Bad Request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+              examples:
+                missing_tracking_id:
+                  summary: Missing tracking ID
+                  value:
+                    error: "Bad Request"
+                    statusCode: 400
+                    message:
+                      - code: "ERR_MISSING_TRACKING_ID"
+                        field: "trackingId"
+                        error: "Missing trackingId"
+        
+        '404':
+          description: Not Found - Tracking ID not found in specified country
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                mawb_not_found:
+                  summary: MAWB not found
+                  value:
+                    statusCode: 404
+                    message: "MAWB not found for trackingId: KXC412212568"
+                    error: "Not Found"
+        
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                statusCode: 401
+                message: "Unauthorized"
+                error: "Unauthorized"
+        
+        '500':
+          description: Internal Server Error - Unexpected error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+              example:
+                statusCode: 500
+                message: "Internal server error"
+                error: "Internal Server Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from M2M authentication endpoint
+  
+  schemas:
+    ConsolidatedTrackingResponse:
+      type: object
+      required:
+        - version
+        - trackingNumber
+        - clientId
+        - countryCode
+        - statuses
+      properties:
+        version:
+          type: string
+          description: API version identifier
+          example: '1.0'
+        trackingNumber:
+          type: string
+          description: The original tracking identifier from request
+          pattern: '^SH[01]\d{2}\d{9}[A-Z]{2}$'
+          example: SH011234567890PE
+        clientId:
+          type: string
+          description: Client code extracted from tracking number (2 digits from positions 3-4)
+          enum:
+            - '01'
+            - '02'
+            - '03'
+          example: '01'
+        countryCode:
+          type: string
+          description: |
+            Two-letter ISO 3166-1 alpha-2 country code extracted from tracking number.
+            Last 2 characters of tracking number.
+          minLength: 2
+          maxLength: 2
+          enum:
+            - CL
+            - PE
+            - CO
+            - AR
+            - US
+          example: PE
+        statuses:
+          type: array
+          description: |
+            Array of status updates sorted by occurrence time (oldest first).
+            May contain up to 2 occurrences of each status code for tracking history.
+          items:
+            $ref: '#/components/schemas/ConsolidatedStatus'
+    ConsolidatedStatus:
+      type: object
+      required:
+        - stage
+        - stageDescription
+        - code
+        - key
+        - iconURL
+        - statusDescription
+        - occuredAt
+        - errors
+        - evidence
+        - observation
+      properties:
+        stage:
+          type: string
+          description: The shipment stage identifier
+          enum:
+            - INWARD_CUSTOMS
+            - LAST_MILE
+          example: LAST_MILE
+        stageDescription:
+          type: object
+          description: |
+            Localized stage names for display purposes.
+            Provides user-friendly stage names in multiple languages.
+          required:
+            - en
+            - es
+          properties:
+            en:
+              type: string
+              description: English stage name
+              example: Last Mile Delivery
+            es:
+              type: string
+              description: Spanish stage name
+              example: Entrega de Última Milla
+        code:
+          type: integer
+          description: |
+            Canonical status code identifier.
+            Range: 2xxx for customs stages, 7xxx for last-mile stages.
+          example: 7050
+          minimum: 1000
+          maximum: 9999
+        key:
+          type: string
+          description: |
+            Status key/identifier in UPPER_SNAKE_CASE format.
+            Used for programmatic status handling.
+          example: DELIVERED
+        iconURL:
+          type: string
+          format: uri
+          description: URL to the status icon image for visual display
+          example: https://icons.serhafen.com/delivered.png
+        statusDescription:
+          description: |
+            Localized status descriptions for display purposes.
+            May be null if no description is available for this status.
+          oneOf:
+            - type: object
+              properties:
+                en:
+                  type: string
+                  description: English description
+                  example: Package delivered successfully
+                es:
+                  type: string
+                  description: Spanish description
+                  example: Paquete entregado exitosamente
+              additionalProperties:
+                type: string
+                description: Additional language descriptions (pt, fr, etc.)
+            - type: 'null'
+        occuredAt:
+          $ref: '#/components/schemas/ConsolidatedStatusOccuredAt'
+        errors:
+          type: array
+          description: |
+            Array of errors associated with this status (always present, may be empty).
+            Contains error information if there were issues retrieving this status data.
+          items:
+            $ref: '#/components/schemas/ConsolidatedError'
+        evidence:
+          type: array
+          description: |
+            Array of evidence URLs (always present, may be empty).
+
+            **Evidence includes:**
+            - Proof of delivery signatures
+            - Delivery confirmation photos
+            - Tracking portal URLs
+            - Customs clearance documents
+
+            **Note:** Evidence availability varies by country and delivery partner.
+            An empty array means no evidence is available for this status.
+          items:
+            type: string
+            format: uri
+          example: []
+        observation:
+          $ref: '#/components/schemas/ConsolidatedStatusObservation'
+    ConsolidatedStatusOccuredAt:
+      type: object
+      required:
+        - localTZ
+        - UTC
+        - city
+        - country
+      description: |
+        Timestamp information for when the status occurred.
+        Includes both UTC and local timezone representations with location context.
+      properties:
+        localTZ:
+          type: string
+          format: date-time
+          description: |
+            Timestamp in local timezone with UTC offset.
+            Format: ISO 8601 with timezone offset (e.g., -05:00 for Peru)
+          example: '2025-12-05T14:30:00-05:00'
+        UTC:
+          type: string
+          format: date-time
+          description: |
+            Timestamp in UTC timezone.
+            Format: ISO 8601 with Z suffix
+          example: '2025-12-05T19:30:00Z'
+        city:
+          type: string
+          description: |
+            City or state where status occurred.
+            May fall back to country code if specific location unavailable.
+          example: Lima
+        country:
+          type: string
+          description: Two-letter ISO 3166-1 alpha-2 country code
+          minLength: 2
+          maxLength: 2
+          example: PE
+    ConsolidatedStatusObservation:
+      description: |
+        Additional observation information for status updates.
+        Provides extra context or reasons for specific statuses.
+      oneOf:
+        - type: object
+          required:
+            - code
+            - description
+          properties:
+            code:
+              type: string
+              description: Observation code identifier
+              example: '5278'
+            description:
+              oneOf:
+                - type: object
+                  properties:
+                    en:
+                      type: string
+                      description: English observation description
+                      example: Package has non-standard shape
+                    es:
+                      type: string
+                      description: Spanish observation description
+                      example: El paquete tiene una forma no estándar
+                  additionalProperties:
+                    type: string
+                    description: Additional language translations
+                - type: 'null'
+        - type: 'null'
+    ConsolidatedError:
+      type: object
+      required:
+        - key
+        - value
+      description: Error information for status-level errors or request-level errors
+      properties:
+        key:
+          type: string
+          description: |
+            Error code identifier for programmatic error handling.
+            Examples: MISSING_PARAMETERS, INVALID_TRACKING_NUMBER, CUSTOMS_DATA_NOT_FOUND
+          example: INVALID_TRACKING_NUMBER
+        value:
+          type: string
+          description: Human-readable error message describing what went wrong
+          example: Invalid tracking number format
+    ConsolidatedErrorResponse:
+      type: object
+      required:
+        - traceParent
+        - status
+        - dateTime
+        - errors
+      description: Standard error response format for all error scenarios
+      properties:
+        traceParent:
+          type: string
+          description: |
+            W3C Trace Context traceparent header value for distributed tracing.
+            Empty string if traceparent not provided in request.
+          pattern: '^(00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2})?$'
+          example: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+        status:
+          type: string
+          description: |
+            HTTP error status name.
+            Standard values: BAD_REQUEST, ERROR, INTERNAL_SERVER_ERROR
+          enum:
+            - BAD_REQUEST
+            - ERROR
+            - INTERNAL_SERVER_ERROR
+          example: BAD_REQUEST
+        dateTime:
+          type: string
+          format: date-time
+          description: |
+            ISO 8601 timestamp when the error occurred.
+            Format: ISO 8601 with milliseconds and timezone
+          example: '2024-03-15T15:22:34.456Z'
+        errors:
+          type: array
+          description: |
+            Array of error details.
+            May contain multiple errors if both customs and last-mile data are missing.
+          items:
+            $ref: '#/components/schemas/ConsolidatedError'
+          minItems: 1
+    M2MTokenRequest:
+      type: object
+      required:
+        - clientId
+        - clientSecret
+      properties:
+        clientId:
+          type: string
+          description: Service account client ID
+          example: tracking-service-client
+        clientSecret:
+          type: string
+          description: Service account client secret
+          example: tracking-service-secret-2024
+    M2MTokenSuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Service account token obtained successfully
+        data:
+          $ref: '#/components/schemas/M2MTokenData'
+    M2MTokenData:
+      type: object
+      required:
+        - accessToken
+        - type
+        - expiryTimeInMinutes
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token for service-to-service authentication
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        type:
+          type: string
+          description: Type of the token
+          example: Bearer
+        expiryTimeInMinutes:
+          type: integer
+          description: Expiration time of the access token in minutes
+          example: 60
+    MawbStatusHistoryResponse:
+      type: object
+      required:
+        - trackingId
+        - isActive
+        - lastUpdatedAt
+        - lastSeenLocation
+        - statuses
+      properties:
+        trackingId:
+          type: string
+          description: The last mile tracking number (HAWB identifier)
+          example: "KXC412212568"
+        isActive:
+          type: boolean
+          description: Indicates if the shipment is currently active in the system
+          example: true
+        lastUpdatedAt:
+          type: string
+          format: date-time
+          description: |
+            Timestamp of the most recent update (in UTC).
+            Calculated from the latest of:  HAWB status update.
+          example: "2024-01-15T10:30:00.000Z"
+        lastSeenLocation:
+          $ref: '#/components/schemas/LastSeenLocation'
+        statuses:
+          type: array
+          description: |
+            Array of status updates, ordered by most recent first (descending by performedAt).
+            Limited to 30 most recent statuses.
+          items:
+            $ref: '#/components/schemas/CustomsStatus'
+          maxItems: 30
+    LastSeenLocation:
+      type: object
+      required:
+        - country
+        - state
+        - lastSourceUpdatedAt
+      properties:
+        country:
+          type: string
+          description: Destination country code from MAWB (e.g., PE, CL, AR, CO, MX)
+          example: "PE"
+        state:
+          type: string
+          description: State or province (currently not populated)
+          example: ""
+        lastSourceUpdatedAt:
+          $ref: '#/components/schemas/CustomsTimestamp'
+    CustomsStatus:
+      type: object
+      required:
+        - code
+        - key
+        - description
+        - lastSeenLocation
+        - lastUpdatedAt
+      properties:
+        code:
+          type: string
+          description: |
+            Status code. Priority order:
+            1. CustomsStatus.statusId (if substatus info available)
+            2. ActivityLog.newSubstatus
+            3. ActivityLog.newStatus
+            4. Empty string (fallback)
+          example: "2001"
+        key:
+          type: string
+          description: |
+            Human-readable status name.
+            Source: CustomsStatus.displayName or fallback "hawb key"
+          example: "Canal Verde"
+        description:
+          type: string
+          description: |
+            Detailed status description.
+            Source: CustomsStatus.description or fallback "hawb description"
+          example: "Green Channel - No inspection required"
+        lastSeenLocation:
+          type: object
+          required:
+            - country
+            - state
+            - lastSeenAt
+          properties:
+            country:
+              type: string
+              description: Country code where status change occurred (e.g., PE, CL, AR, CO, MX)
+              example: "PE"
+            state:
+              type: string
+              description: State, province, or city where status change occurred
+              example: "Lima"
+            lastSeenAt:
+              $ref: '#/components/schemas/CustomsTimestamp'
+        lastUpdatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when this status was recorded (UTC)
+          example: "2024-01-15T10:30:00.000Z"
+        errors:
+          type: object
+          nullable: true
+          description: Error information 
+          example: null
+        meta:
+          type: object
+          nullable: true
+          description: Additional metadata
+          example: null
+    CustomsTimestamp:
+      type: object
+      required:
+        - localTZ
+        - UTC
+      properties:
+        localTZ:
+          type: string
+          description: |
+            Timestamp formatted in local timezone based on destination country.
+            Format: YYYY-MM-DD HH:mm:ss
+            
+            Timezone mapping:
+            - PE → America/Lima (UTC-5)
+            - CL → America/Santiago (UTC-3/UTC-4 with DST)
+            - CO → America/Bogota (UTC-5)
+            - AR → America/Argentina/Buenos_Aires (UTC-3)
+            - Others → UTC
+          example: "2024-01-15 05:30:00"
+        UTC:
+          type: string
+          format: date-time
+          description: Timestamp in UTC (ISO 8601 format)
+          example: "2024-01-15T10:30:00.000Z"
+    BadRequestError:
+      type: object
+      required:
+        - error
+        - statusCode
+        - message
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: array
+          description: Array of validation error details
+          items:
+            type: object
+            required:
+              - code
+              - field
+              - error
+            properties:
+              code:
+                type: string
+                description: Error code for programmatic handling
+                example: "ERR_MISSING_TRACKING_ID"
+              field:
+                type: string
+                description: Field that caused the validation error
+                example: "trackingId"
+              error:
+                type: string
+                description: Human-readable error message
+                example: "Missing trackingId"
+    NotFoundError:
+      type: object
+      required:
+        - statusCode
+        - message
+        - error
+      properties:
+        statusCode:
+          type: integer
+          example: 404
+        message:
+          type: string
+          description: Detailed error message
+          example: "HAWB not found for trackingId: KXC412212568"
+        error:
+          type: string
+          example: "Not Found"
+    UnauthorizedError:
+      type: object
+      required:
+        - statusCode
+        - message
+        - error
+      properties:
+        statusCode:
+          type: integer
+          example: 401
+        message:
+          type: string
+          example: "Unauthorized"
+        error:
+          type: string
+          example: "Unauthorized"
+    InternalServerError:
+      type: object
+      required:
+        - statusCode
+        - message
+        - error
+      properties:
+        statusCode:
+          type: integer
+          example: 500
+        message:
+          type: string
+          example: "Internal server error"
+        error:
+          type: string
+          example: "Internal Server Error"
+    ValidationErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid request parameters"
+    UnauthorizedResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "UNAUTHORIZED"
+            message:
+              type: string
+              example: "Invalid client credentials"
+    ServerErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INTERNAL_ERROR"
+            message:
+              type: string
+              example: "An unexpected error occurred"
+tags:
+  - name: Auth
+    description: Authentication operations for M2M token generation
+  - name: Tracking
+    description: Package tracking operations for consolidated tracking data
+  - name: Customs Status Updates
+    description: Customs clearance status history and HAWB tracking
+x-public: true
+x-audience: lastmile

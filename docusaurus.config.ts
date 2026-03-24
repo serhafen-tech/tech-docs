@@ -49,6 +49,10 @@ const config: Config = {
                         route: '/api/lastmile',
                     },
                     {
+                        spec: 'specs/tracking-api.openapi.yaml',
+                        route: '/api/tracking',
+                    },
+                    {
                         spec: 'specs/cross-border-api.openapi.yaml',
                         route: '/api/cbt',
                     },
@@ -92,6 +96,10 @@ const config: Config = {
                         {
                             to: '/api/lastmile',
                             label: 'Lastmile API',
+                        },
+                        {
+                            to: '/api/tracking',
+                            label: 'Tracking API',
                         },
                         {
                             to: '/api/cbt',

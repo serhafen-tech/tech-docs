@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: Customs API - Client Callback
+  version: 1.0.0
+  description: |
+    Reference implementation for clients to receive customs status updates from Serhafen Connect.
+
+    **Purpose:**
+    - If clients have their own callback API, Serhafen Connect can adapt to it
+    - If not, clients can implement this specification
+    - Provides a standardized callback structure for receiving customs status updates
+    
+    **Use Cases:**
+    - Receive real-time customs clearance status updates
+    - Track shipment movements through customs processes
+    - Integrate customs tracking into your own systems
+
+servers:
+  - url: https://your.domain.com
+    description: Client's callback endpoint
+
+paths:
+  /callback/status-update:
+    post:
+      summary: Receive Status Update (Client Callback)
+      description: |
+        Receives customs status updates from Serhafen Connect.
+        
+        This endpoint should be implemented by the client to receive real-time customs status updates
+        for shipments going through customs clearance.
+        
+        **Implementation Notes:**
+        - Endpoint must be accessible from Serhafen Connect systems
+        - Must support HTTPS
+        - Should be accessible      
+      operationId: receiveStatusUpdate
+      tags:
+        - Client Callbacks
+      
+      security:
+        - ApiKeyAuth: []
+
+      parameters:
+        - in: header
+          name: x-api-key
+          required: true
+          schema:
+            type: string
+          description: Client's API key for authentication (provided by client to Serhafen)
+          example: "client-api-key-12345"
+
+      requestBody:
+        required: true
+        description: Status update payload sent by Serhafen Connect
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdateRequest'
+            examples:
+              customsInProgress:
+                summary: Customs inspection in progress (Argentina)
+                value:
+                  trackingNumber: "ABC123456"
+                  country: "AR"
+                  clientCode: "CLIENT_XYZ"
+                  uniqueReferences:
+                    - key: "internalRefNum"
+                      value: "REF12345"
+                  stage:
+                    name: "INWARD_CUSTOMS"
+                    latestStatus:
+                      code: 102
+                      key: "CUSTOMS_INSPECTION_IN_PROGRESS"
+                      description: "Customs inspection is currently in progress."
+                      lastSeenLocation:
+                        state: "Buenos Aires"
+                        country: "AR"
+                        lastSeenAt:
+                          localTZ: "2025-06-13T14:32:00-03:00"
+                          UTC: "2025-06-13T17:32:00Z"
+                      errors: []
+                      meta: []
+                    lastUpdatedAt: "2025-06-13T11:54:00Z"
+                    carrier: "Express Courier"
+              
+              customsCleared:
+                summary: Customs clearance completed (Chile)
+                value:
+                  trackingNumber: "CL789456123"
+                  country: "CL"
+                  clientCode: "CLIENT_ABC"
+                  uniqueReferences:
+                    - key: "orderNumber"
+                      value: "ORD-2026-001"
+                  stage:
+                    name: "INWARD_CUSTOMS"
+                    latestStatus:
+                      code: 2050
+                      key: "DESPACHADO"
+                      description: "Package customs inspection is done"
+                      lastSeenLocation:
+                        state: "Santiago"
+                        country: "CL"
+                        lastSeenAt:
+                          localTZ: "2025-06-14T10:00:00-03:00"
+                          UTC: "2025-06-14T13:00:00Z"
+                      errors: []
+                      meta: []
+                    lastUpdatedAt: "2025-06-14T13:00:00Z"
+                    carrier: null
+              
+              customsException:
+                summary: Customs exception with errors (Chile)
+                value:
+                  trackingNumber: "CL333111222"
+                  country: "CL"
+                  clientCode: "CLIENT_XYZ"
+                  uniqueReferences:
+                    - key: "hawbNumber"
+                      value: "HAWB-789"
+                  stage:
+                    name: "INWARD_CUSTOMS"
+                    latestStatus:
+                      code: 2040
+                      key: "CANAL_ROJO"
+                      description: "Customs exception requiring inspection (Red Channel)"
+                      lastSeenLocation:
+                        state: "Santiago"
+                        country: "CL"
+                        lastSeenAt:
+                          localTZ: "2025-06-16T09:00:00-03:00"
+                          UTC: "2025-06-16T12:00:00Z"
+                      errors:
+                        - key: "INSPECTION_REQUIRED"
+                          value: "Physical inspection required by SAG"
+                      meta:
+                        - key: "inspectionAgency"
+                          value: "SAG"
+                    lastUpdatedAt: "2025-06-16T12:00:00Z"
+                    carrier: null
+
+      responses:
+        "200":
+          description: Status successfully received and processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusUpdateResponse'
+              examples:
+                success:
+                  summary: Successful update
+                  value:
+                    message: "Status updated"
+                    trackingNumber: "ABC123456"
+                    updatedFields:
+                      - "statuses"
+                      - "lastSeenLocation"
+
+        "400":
+          description: Bad request - Invalid payload or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Missing required field: trackingNumber"
+
+        "401":
+          description: Unauthorized - Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Invalid API key"
+
+        "404":
+          description: Resource not found - Tracking number not found in client system
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Tracking number ABC123456 not found"
+
+        "412":
+          description: Precondition failed - Update cannot be processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Precondition Failed"
+                message: "Status update out of sequence"
+
+        "500":
+          description: Internal server error - Client system error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Failed to process status update"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key provided by the client to Serhafen Connect for authentication
+  
+  schemas:
+    StatusUpdateRequest:
+      type: object
+      required:
+        - trackingNumber
+        - country
+        - clientCode
+        - stage
+      properties:
+        trackingNumber:
+          type: string
+          description: Unique tracking number for the shipment
+          example: "ABC123456"
+        
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+          minLength: 2
+          maxLength: 2
+          example: "CL"
+        
+        clientCode:
+          type: string
+          description: Unique client identifier assigned by Serhafen
+          example: "CLIENT_XYZ"
+        
+        uniqueReferences:
+          type: array
+          description: Custom reference identifiers provided by the client
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                description: Reference key name
+                example: "internalRefNum"
+              value:
+                type: string
+                description: Reference value
+                example: "REF12345"
+        
+        stage:
+          type: object
+          required:
+            - name
+            - latestStatus
+          properties:
+            name:
+              type: string
+              description: Stage name
+              enum:
+                - INWARD_CUSTOMS
+              example: "INWARD_CUSTOMS"
+            
+            latestStatus:
+              type: object
+              required:
+                - code
+                - key
+                - description
+              properties:
+                code:
+                  type: integer
+                  description: Status code
+                  example: 102
+                
+                key:
+                  type: string
+                  description: Status key/identifier
+                  example: "CUSTOMS_INSPECTION_IN_PROGRESS"
+                
+                description:
+                  type: string
+                  description: Human-readable status description
+                  example: "Customs inspection is currently in progress."
+                
+                lastSeenLocation:
+                  type: object
+                  description: Location where status was last updated
+                  properties:
+                    state:
+                      type: string
+                      description: State, province, or city
+                      example: "Buenos Aires"
+                    country:
+                      type: string
+                      description: Country code
+                      example: "AR"
+                    lastSeenAt:
+                      type: object
+                      properties:
+                        localTZ:
+                          type: string
+                          format: date-time
+                          description: Timestamp in local timezone
+                          example: "2025-06-13T14:32:00-03:00"
+                        UTC:
+                          type: string
+                          format: date-time
+                          description: Timestamp in UTC
+                          example: "2025-06-13T17:32:00Z"
+                
+                errors:
+                  type: array
+                  description: Array of errors or exceptions (if any)
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Error code/key
+                        example: "INSPECTION_REQUIRED"
+                      value:
+                        type: string
+                        description: Error message
+                        example: "Physical inspection required by customs"
+                
+                meta:
+                  type: array
+                  description: Additional metadata key-value pairs
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Metadata key
+                        example: "recipientName"
+                      value:
+                        type: string
+                        description: Metadata value
+                        example: "Juan Pérez"
+            
+            lastUpdatedAt:
+              type: string
+              format: date-time
+              description: Timestamp when the stage was last updated (UTC)
+              example: "2025-06-13T11:54:00Z"
+            
+            carrier:
+              type: string
+              nullable: true
+              description: Carrier/partner name
+              example: "Express Courier"
+    
+    StatusUpdateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message
+          example: "Status updated"
+        trackingNumber:
+          type: string
+          description: Tracking number that was updated
+          example: "ABC123456"
+        updatedFields:
+          type: array
+          description: List of fields that were updated
+          items:
+            type: string
+          example:
+            - "statuses"
+            - "lastSeenLocation"
+    
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Bad Request"
+        message:
+          type: string
+          description: Error message
+          example: "Missing required field: trackingNumber"
+
+tags:
+  - name: Client Callbacks
+    description: Webhook endpoints implemented by clients to receive status updates from Serhafen Connect
+
+x-public: true
+x-audience: customs

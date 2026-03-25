@@ -319,9 +319,139 @@ paths:
         
         **Important Notes:**
         - The `countryCode` query parameter determines which database schema to query
-        - Cross-country queries are allowed (user authenticated for AR can query PE data)
         - Returns 404 if tracking ID not found in specified country schema
         
+        **Status Code Reference (Chile):**
+        
+        | Status Code | Status Key                               | Status Description                                   |
+        |-------------|------------------------------------------|------------------------------------------------------|
+        | 2030        | Declarado                                | Customs declaration has been submitted               |
+        | 2020        | Recibido en Almacén                      | Received at bounded warehouse                        |
+        | 2050        | Despachado                               | Package customs inspection is done                   |
+        | 3007        | Pendiente Verificación                   | Waiting for custom verification                      |
+        | 2040        | Canal Rojo                               | Customs exception requiring inspection (Red Channel) |
+        | 3001        | ID Inválido                              | The identification ID provided is invalid            |
+        | 3004        | Falta Identificación                     | Missing identification documents                     |
+        | 1011        | Liberado                                 | Green channel - no inspection required               |
+        | 3007        | Pago Impuesto                            | Customs exception requiring tax payment              |
+        | 1019        | HAWB Duplicado                           | Duplicate HAWB detected                              |
+        | 2070        | Parcel Handed Over to Last Mile Operator | Parcel has been handed over to last mile operator    |
+        | 4011        | Extra Parcel                             | Extra Parcel                                         |
+        | 1000        | Borrador                                 | Initial draft state for MAWB                         |
+        | 1001        | Creado                                   | MAWB has been created                                |
+        | 1002        | Pendiente Validación                     | Waiting for agent validation                         |
+        | 1003        | Generación Iniciada                      | File generation process has started                  |
+        | 1004        | Declaración Rechazada                    | Custom declaration has been rejected                 |
+        | 1005        | Atención Requerida                       | Handler attention is recommended                     |
+        | 1008        | Requiere Inspección                      | Package needs to be inspected by customs authority   |
+        | 1009        | Requiere Pago Impuesto                   | Consignee needs to pay customs duty                  |
+        | 1012        | Listo para Despacho                      | Ready for custom clearance process                   |
+        | 1013        | Listo para Declarar                      | Ready to be declared to customs                      |
+        | 4010        | Faltante                                 | Package Missing                                      |
+        | 4008        | Dañado                                   | Package Damaged                                      |
+        | 4003        | Prohibido                                | Package Prohibited                                   |
+        | 4002        | Presunción Abandono                      | Presumed abandonment                                 |
+        | 2050        | Customs Clearance Released               | Customs clearance has been completed                 |
+        | 2070        | Entregado a LastMile                     | Parcel has been handed over to last mile             |
+        | 1021        | SWH Handler Attention Required           | Scanned at warehouse handler attention required      |
+        | 1022        | SWH Requires Custom Inspection           | Scanned at warehouse requires custom inspection      |
+        | 1023        | SWH Requires Custom Duty Payment         | Scanned at warehouse requires custom duty payment    |
+        | 2020        | WH Listo Despacho                        | Warehouse is ready for custom clearance              |
+        | 2020        | WH Atención Requerida                    | Warehouse handler attention is required              |
+        | 2020        | WH Requiere Pago                         | Warehouse requires customs duty payment              |
+        | 2020        | WH Requiere Inspección                   | Warehouse requires customs inspection                |
+        | 2040        | DGMN                                     | DGMN                                                 |
+        | 2040        | DIFROL                                   | DIFROL                                               |
+        | 2040        | Físico                                   | Physical                                             |
+        | 2040        | Físico dips                              | DIPS Physical                                        |
+        | 2040        | Físico drogas                            | Drugs Physical                                       |
+        | 2040        | Físico SAG                               | SAG Physical                                         |
+        | 2040        | Físico UAR                               | UAR Physical                                         |
+        | 2040        | Pendiente de VB o antecedentes           | Pending Approval OR Background check                 |
+        | 2040        | REVISION ISP                             | ISP Review                                           |
+        | 2040        | REVISION SAG                             | SAG Review                                           |
+        | 2040        | Pendiente RUT aduana                     | Customs RUT Pending                                  |
+        | 2040        | SEREMI                                   | SEREMI                                               |
+        | 2040        | SERNAPESCA                               | SERNAPESCA                                           |
+        | 2040        | Tramitar AGA                             | Tramitar AGA                                         |
+        | 1021        | Hacer DIPS                               | Make DIPS                                            |
+        | 4003        | Inmovilización SAG                       | SAG Immobilization                                   |
+        | 4013        | SWH Ready for Custom Clearance           | Scanned at warehouse ready for custom clearance      |
+        | 1024        | Scanned at Bounded Warehouse             | Scanned at bounded warehouse                         |
+        | 2010        | Recibido en País Destino                 | Received at destination country                      |
+        | 4007        | Subvalorado por Aduanas                  | Undervalued by Customs                               |
+        | 4001        | Incautado por Aduanas                    | Seized by Customs                                    |
+        | 4001        | Inmovilizado por Aduanas                 | Held by Customs                                      |
+        
+        **Status Code Reference (Peru):**
+        
+        | Status Code | Status Key                                                       | Status Description                                               |
+        |-------------|------------------------------------------------------------------|------------------------------------------------------------------|
+        | 2030        | Declarado                                                        | Customs declaration has been submitted                           |
+        | 2020        | Recibido en Almacén                                              | Received at bounded warehouse                                    |
+        | 2050        | Despachado                                                       | Package customs inspection is done                               |
+        | 3007        | Pendiente Verificación                                           | Waiting for custom verification                                  |
+        | 2040        | Canal Rojo                                                       | Customs exception requiring inspection (Red Channel)             |
+        | 3007        | Pendiente Pago Impuesto                                          | Customs exception requiring tax payment                          |
+        | 3001        | ID Inválido                                                      | The identification ID provided is invalid                        |
+        | 3004        | Falta Identificación                                             | Missing identification documents                                 |
+        | 1011        | Canal Verde                                                      | Green channel - no inspection required                           |
+        | 1019        | HAWB Duplicado                                                   | Duplicate HAWB detected                                          |
+        | 4011        | Extra Parcel                                                     | Extra Parcel                                                     |
+        | 4012        | Restricted Parcel                                                | Restricted Parcel                                                |
+        | 3007        | DSEER                                                            | DSEER                                                            |
+        | 4007        | Orange Channel                                                   | Orange Channel                                                   |
+        | 2040        | National Center for Supply of Strategic Health Resources         | National Center for Supply of Strategic Health Resources         |
+        | 2040        | General Directorate of Environmental Affairs                     | General Directorate of Environmental Affairs                     |
+        | 2040        | Directorate of Borders                                           | Directorate of Borders                                           |
+        | 2040        | Directorate for Regulation of Industrial and Controlled Products | Directorate for Regulation of Industrial and Controlled Products |
+        | 2040        | General Directorate of Solid Waste Management                    | General Directorate of Solid Waste Management                    |
+        | 2040        | General Directorate of Hydrocarbons                              | General Directorate of Hydrocarbons                              |
+        | 2040        | General Directorate of Medicines, Supplies, and Drugs            | General Directorate of Medicines, Supplies, and Drugs            |
+        | 2040        | General Directorate of Cultural Heritage                         | General Directorate of Cultural Heritage                         |
+        | 2040        | General Directorate of Policy and Regulatory Analysis            | General Directorate of Policy and Regulatory Analysis            |
+        | 2040        | General Directorate of Environmental Health and Food Safety      | General Directorate of Environmental Health and Food Safety      |
+        | 2040        | National Directorate of Donations, Transplants, and Blood Bank   | National Directorate of Donations, Transplants, and Blood Bank   |
+        | 1000        | Borrador                                                         | Initial draft state for MAWB                                     |
+        | 2070        | UM Delivery                                                      | Entrega UM                                                       |
+        | 2040        | Peruvian Institute of Nuclear Energy                             | Peruvian Institute of Nuclear Energy                             |
+        | 2040        | National Intendancy of Chemical Inputs and Controlled Goods      | National Intendancy of Chemical Inputs and Controlled Goods      |
+        | 2040        | Ministry of Transport and Communications                         | Ministry of Transport and Communications                         |
+        | 2040        | National Agrarian Health Service                                 | National Agrarian Health Service                                 |
+        | 2040        | National Fisheries Health Service                                | National Fisheries Health Service                                |
+        | 2040        | National Forestry and Wildlife Service                           | National Forestry and Wildlife Service                           |
+        | 2040        | Vice Ministry of Fisheries and Aquaculture                       | Vice Ministry of Fisheries and Aquaculture                       |
+        | 2040        | Ministry of Production                                           | Ministry of Production                                           |
+        | 1001        | Creado                                                           | MAWB has been created                                            |
+        | 1002        | Pendiente Validación                                             | Waiting for agent validation                                     |
+        | 1003        | Generación Iniciada                                              | File generation process has started                              |
+        | 1004        | Declaración Rechazada                                            | Custom declaration has been rejected                             |
+        | 1005        | Atención Requerida                                               | Handler attention is recommended                                 |
+        | 1008        | Requiere Inspección                                              | Package needs to be inspected by customs authority               |
+        | 1009        | Requiere Pago Impuesto                                           | Consignee needs to pay customs duty                              |
+        | 1012        | Listo para Despacho                                              | Ready for custom clearance process                               |
+        | 1013        | Listo para Declarar                                              | Ready to be declared to customs                                  |
+        | 4010        | Faltante                                                         | Package Missing                                                  |
+        | 4008        | Dañado                                                           | Package Damaged                                                  |
+        | 4003        | Prohibido                                                        | Package Prohibited                                               |
+        | 3004        | Faltan Antecedentes                                              | Missing background documents                                     |
+        | 4002        | Presunción Abandono                                              | Presumed abandonment                                             |
+        | 4001        | Incautado por SUNAT                                              | Seized by SUNAT                                                  |
+        | 3001        | DNI Fallecido                                                    | Deceased DNI                                                     |
+        | 4007        | Subvalorado por SUNAT                                            | Undervalued by SUNAT                                             |
+        | 4001        | Inmovilizado por SUNAT                                           | Held by SUNAT                                                    |
+        | 2050        | Customs Clearance Released                                       | Customs clearance has been completed                             |
+        | 2070        | Entregado a LastMile                                             | Parcel has been handed over to last mile                         |
+        | 1021        | SWH Handler Attention Required                                   | Scanned at warehouse handler attention required                  |
+        | 1022        | SWH Requires Custom Inspection                                   | Scanned at warehouse requires custom inspection                  |
+        | 1023        | SWH Requires Custom Duty Payment                                 | Scanned at warehouse requires custom duty payment                |
+        | 2020        | WH Listo Despacho                                                | Warehouse is ready for custom clearance                          |
+        | 2020        | WH Atención Requerida                                            | Warehouse handler attention is required                          |
+        | 2020        | WH Requiere Pago                                                 | Warehouse requires customs duty payment                          |
+        | 2020        | WH Requiere Inspección                                           | Warehouse requires customs inspection                            |
+        | 4013        | SWH Ready for Custom Clearance                                   | Scanned at warehouse ready for custom clearance                  |
+        | 1024        | Scanned at Bounded Warehouse                                     | Scanned at bounded warehouse                                     |
+        | 2010        | Recibido en País Destino                                         | Received at destination country                                  |      
       
       operationId: getMawbStatusHistory
       tags:
@@ -510,6 +640,13 @@ paths:
                 statusCode: 500
                 message: "Internal server error"
                 error: "Internal Server Error"
+      servers:
+        - url: https://api.serhafen.tech
+          description: Production API
+        - url: https://api.staging.serhafen.tech
+          description: Staging API
+        - url: http://localhost:3000
+          description: Local/Development API
 components:
   securitySchemes:
     bearerAuth:

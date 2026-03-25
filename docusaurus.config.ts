@@ -53,6 +53,10 @@ const config: Config = {
                         route: '/api/tracking',
                     },
                     {
+                        spec: 'specs/customs-api.openapi.yaml',
+                        route: '/api/customs',
+                    },
+                    {
                         spec: 'specs/cross-border-api.openapi.yaml',
                         route: '/api/cbt',
                     },
@@ -100,6 +104,10 @@ const config: Config = {
                         {
                             to: '/api/tracking',
                             label: 'Tracking API',
+                        },
+                        {
+                            to: '/api/customs',
+                            label: 'Customs API',
                         },
                         {
                             to: '/api/cbt',

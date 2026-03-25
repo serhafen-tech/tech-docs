@@ -16,8 +16,10 @@ info:
     - Integrate customs tracking into your own systems
 
 servers:
-  - url: https://your.domain.com
-    description: Client's callback endpoint
+  - url: https://your.domain-staging.com
+    description: Client's callback endpoint (Staging)
+  - url: https://your.domain-prod.com
+    description: Client's callback endpoint (Production)
 
 paths:
   /callback/status-update:

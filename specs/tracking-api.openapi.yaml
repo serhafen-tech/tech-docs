@@ -308,7 +308,7 @@ paths:
       security: []
       tags:
         - Tracking
-  /customs/v0/mawb/detail/status-history:
+  /customs/v0/hawb/detail/status-history:
     get:
       summary: Get HAWB Customs Status History
       description: |

@@ -68,6 +68,13 @@ paths:
       security: []
       tags:
         - Auth
+      servers:
+        - url: https://api.serhafen.tech
+          description: Production API
+        - url: https://api.staging.serhafen.tech
+          description: Staging API
+        - url: http://localhost:3001
+          description: Local/Development API
   /last-mile/package/{trackingNumber}:
     get:
       operationId: trackPackage
@@ -308,13 +315,13 @@ paths:
       security: []
       tags:
         - Tracking
-  /customs/v0/mawb/detail/status-history:
+  /customs-declaration/v0/hawb/detail/status-history:
     get:
       summary: Get HAWB Customs Status History
       description: |
         Retrieves detailed customs clearance tracking history for a shipment including:
         - HAWB (House Air Waybill) information
-        - Complete status history (up to 30 most recent updates)
+        - Complete status history
         - Customs clearance status details
         
         **Important Notes:**

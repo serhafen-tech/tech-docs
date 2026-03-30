@@ -537,7 +537,9 @@ paths:
                         localTZ: "2024-01-15 05:30:00"
                         UTC: "2024-01-15T10:30:00.000Z"
                     statuses:
-                      - code: "2001"
+                      - statusId: 1011
+                        statusName: "Canal Verde"
+                        code: "2001"
                         key: "Canal Verde"
                         description: "Green Channel - No inspection required"
                         lastSeenLocation:
@@ -562,7 +564,9 @@ paths:
                         localTZ: "2024-01-18 10:20:00"
                         UTC: "2024-01-18T14:20:00.000Z"
                     statuses:
-                      - code: "2500"
+                      - statusId: 3007
+                        statusName: "Pendiente Verificación"
+                        code: "2500"
                         key: "Pending Customs Inspection"
                         description: "Shipment held for customs verification"
                         lastSeenLocation:
@@ -574,7 +578,7 @@ paths:
                         lastUpdatedAt: "2024-01-18T14:20:00.000Z"
                         errors: null
                         meta: null
-        
+
         '400':
           description: Bad Request - Invalid parameters
           content:
@@ -1000,7 +1004,7 @@ components:
             Array of status updates, ordered by most recent first (descending by performedAt).
             Limited to 30 most recent statuses.
           items:
-            $ref: '#/components/schemas/CustomsStatus'
+            $ref: '#/components/schemas/HawbStatusHistoryItem'
           maxItems: 30
     LastSeenLocation:
       type: object
@@ -1019,15 +1023,29 @@ components:
           example: ""
         lastSourceUpdatedAt:
           $ref: '#/components/schemas/CustomsTimestamp'
-    CustomsStatus:
+    HawbStatusHistoryItem:
       type: object
       required:
         - code
         - key
         - description
+        - statusId
+        - statusName
         - lastSeenLocation
         - lastUpdatedAt
       properties:
+        statusId:
+          type: integer
+          description: |
+            Primary identifier for the main status.
+            Source: CustomsStatus.statusId
+          example: 1011
+        statusName:
+          type: string
+          description: |
+            Display name for the main status.
+            Source: CustomsStatus.displayName
+          example: "Canal Verde"
         code:
           type: string
           description: |

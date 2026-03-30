@@ -167,9 +167,9 @@ paths:
       tags:
         - Shipments
       servers:
-        - url: https://api.serhafen.tech/last-mile
+        - url: https://api.serhafen-net.andinolabs.tech/last-mile
           description: Production API
-        - url: https://api.staging.serhafen.tech/last-mile  
+        - url: https://tech.andinolabs.com/last-mile  
           description: Staging API
         - url: /last-mile
           description: Local/Development API
@@ -315,9 +315,9 @@ paths:
       tags:
         - Shipments
       servers:
-        - url: https://api.serhafen.tech/last-mile
+        - url: https://api.serhafen-net.andinolabs.tech/last-mile
           description: Production API
-        - url: https://api.staging.serhafen.tech/last-mile  
+        - url: https://tech.andinolabs.com/last-mile  
           description: Staging API
         - url: /last-mile
           description: Local/Development API
@@ -429,9 +429,9 @@ paths:
       tags:
         - ASN Integration
       servers:
-        - url: https://api.serhafen.tech/last-mile
+        - url: https://api.serhafen-net.andinolabs.tech/last-mile
           description: Production API
-        - url: https://api.staging.serhafen.tech/last-mile
+        - url: https://tech.andinolabs.com/last-mile
           description: Staging API
         - url: /last-mile
           description: Local/Development API
@@ -561,9 +561,9 @@ paths:
       tags:
         - Partner Integration
       servers:
-        - url: https://api.serhafen.tech/last-mile  
+        - url: https://api.serhafen-net.andinolabs.tech/last-mile
           description: Production API
-        - url: https://api.staging.serhafen.tech/last-mile
+        - url: https://tech.andinolabs.com/last-mile
           description: Staging API
         - url: /last-mile
           description: Local/Development API

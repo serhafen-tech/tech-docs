@@ -1004,7 +1004,7 @@ components:
             Array of status updates, ordered by most recent first (descending by performedAt).
             Limited to 30 most recent statuses.
           items:
-            $ref: '#/components/schemas/HawbStatusHistoryItem'
+            $ref: '#/components/schemas/CustomsStatus'
           maxItems: 30
     LastSeenLocation:
       type: object
@@ -1023,7 +1023,7 @@ components:
           example: ""
         lastSourceUpdatedAt:
           $ref: '#/components/schemas/CustomsTimestamp'
-    HawbStatusHistoryItem:
+    CustomsStatus:
       type: object
       required:
         - code
@@ -1038,13 +1038,11 @@ components:
           type: integer
           description: |
             Primary identifier for the main status.
-            Source: CustomsStatus.statusId
           example: 1011
         statusName:
           type: string
           description: |
             Display name for the main status.
-            Source: CustomsStatus.displayName
           example: "Canal Verde"
         code:
           type: string

@@ -71,9 +71,9 @@ paths:
       tags:
         - Auth
       servers:
-        - url: https://api.serhafen-staging.andinolabs.tech/iam
+        - url: https://api.staging.serhafen.tech/iam
           description: Staging server
-        - url: https://api.serhafen.andinolabs.tech/iam
+        - url: https://api.serhafen.tech/iam
           description: Production server
   /v0/waybills:
     post:

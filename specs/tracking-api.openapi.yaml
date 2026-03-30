@@ -7,9 +7,9 @@ info:
     name: Platform Support
     email: platform-support@serhafen.com
 servers:
-  - url: https://api.serhafen-net.andinolabs.tech
+  - url: https://api.serhafen.tech
     description: Production API
-  - url: https://tech.andinolabs.com
+  - url: https://api.staging.serhafen.tech
     description: Staging API
   - url: http://localhost:3001
     description: Local/Development API

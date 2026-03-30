@@ -169,7 +169,7 @@ paths:
       servers:
         - url: https://api.serhafen-net.andinolabs.tech/last-mile
           description: Production API
-        - url: https://tech.andinolabs.com/last-mile  
+        - url: https://tech.andinolabs.com/last-mile
           description: Staging API
         - url: /last-mile
           description: Local/Development API
@@ -317,7 +317,7 @@ paths:
       servers:
         - url: https://api.serhafen-net.andinolabs.tech/last-mile
           description: Production API
-        - url: https://tech.andinolabs.com/last-mile  
+        - url: https://tech.andinolabs.com/last-mile
           description: Staging API
         - url: /last-mile
           description: Local/Development API

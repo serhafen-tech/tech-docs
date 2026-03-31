@@ -22,11 +22,11 @@ info:
 
     **Token Endpoint:**
     ```
-    POST https://api.serhafen-staging.andinolabs.tech/iam-service/v0/auth/m2m/token
+    POST https://api.staging.serhafen.tech/iam-service/v0/auth/m2m/token
     ```
     **Request Example:**
     ```bash
-    curl -X POST "https://api.serhafen-staging.andinolabs.tech/iam-service/v0/auth/m2m/token" \
+    curl -X POST "https://api.staging.serhafen.tech/iam-service/v0/auth/m2m/token" \
       -H "Content-Type: application/json" \
       -d '{
         "clientId": "<YOUR_CLIENT_ID>",

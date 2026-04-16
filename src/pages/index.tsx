@@ -25,12 +25,6 @@ function HomepageHeader() {
                     </Link>
                     <Link
                         className="button button--secondary button--lg"
-                        to="/api/cbt"
-                        style={{marginLeft: '1rem'}}>
-                        Cross Border API Documentation
-                    </Link>
-                    <Link
-                        className="button button--secondary button--lg"
                         to="/api/pre-alert"
                         style={{marginLeft: '1rem'}}>
                         Pre-Alert API Documentation

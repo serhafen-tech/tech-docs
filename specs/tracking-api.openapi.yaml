@@ -69,9 +69,9 @@ paths:
       tags:
         - Auth
       servers:
-        - url: https://api.serhafen.tech
+        - url: https://api.serhafen.tech/iam
           description: Production API
-        - url: https://api.staging.serhafen.tech
+        - url: https://api.staging.serhafen.tech/iam
           description: Staging API
         - url: http://localhost:3001
           description: Local/Development API

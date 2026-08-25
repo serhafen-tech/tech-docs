@@ -75,7 +75,7 @@ paths:
           description: Staging API
         - url: http://localhost:3001
           description: Local/Development API
-  /last-mile/package/{trackingNumber}:
+  /last-mile/shipments/tracking/{trackingNumber}:
     get:
       operationId: trackPackage
       summary: Get consolidated tracking data for a shipment

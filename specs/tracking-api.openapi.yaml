@@ -75,7 +75,7 @@ paths:
           description: Staging API
         - url: http://localhost:3001
           description: Local/Development API
-  /last-mile/shipments/tracking/{trackingNumber}:
+  /last-mile/shipments/tracking:
     get:
       operationId: trackPackage
       summary: Get consolidated tracking data for a shipment
@@ -93,6 +93,11 @@ paths:
         - **Timezone Conversion**: Timestamps provided in both UTC and local timezone with city/country context
         - **Evidence Attachments**: Proof of delivery URLs (tracking links, signatures, photos) when available
 
+        **Lookup Options:**
+        - Provide `trackingId` to look up directly by Serhafen tracking number.
+        - Or provide `externalId` together with `country` to resolve the tracking number via the customs API first.
+        - At least one of `trackingId` or `externalId` is required.
+
         **Tracking Number Format:**
         - Pattern: `SH[0|1]XX##########CC`
         - `SH`: Serhafen prefix (fixed)
@@ -108,16 +113,45 @@ paths:
         - All timestamps include both UTC and local timezone information
         - Evidence field is always present but may be empty if no evidence is available
       parameters:
-        - name: trackingNumber
-          in: path
-          required: true
+        - name: trackingId
+          in: query
+          required: false
           description: |
             Tracking number in Serhafen format.
-            Must match pattern: SH[0|1]XX##########CC where XX is client code (01-03) and CC is country code (CL, PE, CO, AR, US)
+            Must match pattern: SH[0|1]XX##########CC where XX is client code (01-03) and CC is country code (CL, PE, CO, AR, US).
+            Required if `externalId` is not provided.
           schema:
             type: string
             pattern: '^SH[01]\d{2}\d{9}[A-Z]{2}$'
             example: SH011234567890PE
+        - name: externalId
+          in: query
+          required: false
+          description: |
+            External ID of the shipment.
+            Requires `country` to also be provided.
+          schema:
+            type: string
+            example: BG-31011888WBRVXL6W
+        - name: country
+          in: query
+          required: false
+          description: |
+            Two-letter ISO country code of the shipment.
+            Required when `externalId` is used; ignored when `trackingId` is provided directly
+          schema:
+            type: string
+            example: PE
+        - name: is_filtered
+          in: query
+          required: false
+          description: |
+            Whether to filter statuses by the country allow-list. Defaults to true.
+            Set to `false` to return all statuses unfiltered.
+          schema:
+            type: string
+            default: 'true'
+            example: 'true'
         - name: traceparent
           in: header
           required: false
@@ -139,7 +173,7 @@ paths:
                   description: Delivery confirmed with proof of delivery URLs
                   value:
                     version: '1.0'
-                    trackingNumber: SH011234567890PE
+                    trackingId: SH011234567890PE
                     clientId: '01'
                     countryCode: PE
                     statuses:
@@ -186,7 +220,7 @@ paths:
                   description: Delivery confirmed but no proof of delivery URLs available
                   value:
                     version: '1.0'
-                    trackingNumber: SH011234567891PE
+                    trackingId: SH011234567891PE
                     clientId: '01'
                     countryCode: PE
                     statuses:
@@ -213,7 +247,7 @@ paths:
                   description: Package currently in delivery - no evidence available yet
                   value:
                     version: '1.0'
-                    trackingNumber: SH021234567890CL
+                    trackingId: SH021234567890CL
                     clientId: '02'
                     countryCode: CL
                     statuses:
@@ -261,14 +295,23 @@ paths:
                 $ref: '#/components/schemas/ConsolidatedErrorResponse'
               examples:
                 missingTrackingId:
-                  summary: Missing tracking number parameter
+                  summary: Missing trackingId or externalId parameter
                   value:
                     traceParent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
                     status: BAD_REQUEST
                     dateTime: '2024-03-15T15:22:34.456Z'
                     errors:
                       - key: MISSING_PARAMETERS
-                        value: trackingNumber is missing
+                        value: trackingId or externalId is required
+                missingCountry:
+                  summary: Missing country parameter when using externalId
+                  value:
+                    traceParent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+                    status: BAD_REQUEST
+                    dateTime: '2024-03-15T15:22:34.456Z'
+                    errors:
+                      - key: MISSING_PARAMETERS
+                        value: country is required when externalId is provided
                 invalidFormat:
                   summary: Invalid tracking number format
                   value:
@@ -651,7 +694,7 @@ components:
       type: object
       required:
         - version
-        - trackingNumber
+        - trackingId
         - clientId
         - countryCode
         - statuses
@@ -660,9 +703,10 @@ components:
           type: string
           description: API version identifier
           example: '1.0'
-        trackingNumber:
+        trackingId:
           type: string
-          description: The original tracking identifier from request
+          description: |
+            The Serhafen tracking number.
           pattern: '^SH[01]\d{2}\d{9}[A-Z]{2}$'
           example: SH011234567890PE
         clientId:

@@ -84,14 +84,15 @@ paths:
         Combines data from customs clearance and last-mile delivery stages.
 
         **⚠️ Important:** This endpoint is only available for clients with **S2 (Status Tracker Service)** enabled.
-        Contact Serhafen support to enable this service for your account.
+          Contact Serhafen support to enable this service for your account.
+          - image url is token based by default. contanct serhafen for raw url access.
 
         **Key Features:**
         - **Consolidated Tracking**: Combines customs clearance and last-mile delivery statuses
         - **Multi-Language Support**: Status descriptions available in English and Spanish
         - **Localized Stage Names**: User-friendly stage names for better customer experience
         - **Timezone Conversion**: Timestamps provided in both UTC and local timezone with city/country context
-        - **Evidence Attachments**: Proof of delivery URLs (tracking links, signatures, photos) when available
+        - **Evidence Attachments**: Proof of delivery references (tracking links, signatures, photos) when available
 
         **Lookup Options:**
         - Provide `trackingId` to look up directly by Serhafen tracking number.
@@ -112,6 +113,10 @@ paths:
         - Latest status updates are prioritized (up to 2 occurrences per status code)
         - All timestamps include both UTC and local timezone information
         - Evidence field is always present but may be empty if no evidence is available
+
+        **⚠️ Evidence is now token-based by default:** As of this version, each entry in `evidence` is
+        a short-lived, opaque token rather than a ready-to-use image URL. Exchange each token for a
+        downloadable URL via `GET /last-mile/shipments/tracking/evidence-image`.
       parameters:
         - name: trackingId
           in: query
@@ -169,8 +174,10 @@ paths:
                 $ref: '#/components/schemas/ConsolidatedTrackingResponse'
               examples:
                 deliveredWithEvidence:
-                  summary: Delivered package with evidence URLs (Peru)
-                  description: Delivery confirmed with proof of delivery URLs
+                  summary: Delivered package with evidence tokens
+                  description: |
+                    Delivery confirmed with evidence tokens. Each token is exchanged for a
+                    downloadable image URL via GET /last-mile/shipments/tracking/evidence-image.
                   value:
                     version: '1.0'
                     trackingId: SH011234567890PE
@@ -212,8 +219,37 @@ paths:
                           country: PE
                         errors: []
                         evidence:
+                          - eyJrIjoiaHR0cHM6Ly90cmFjay5hYmMucGUvVFJLMTIzNDU2IiwidCI6ImRpcmVjdCIsImV4cCI6MTc2NTM4NTQwMH0.9pQeR3z1-…
+                          - eyJrIjoiZGVsaXZlcnktcHJvb2ZzL3llYXI9MjAyNS9tb250aD0xMi9kYXk9MDUvVFJLMTIzNDU2LTE3NjUzODE4MDAuanBnIiwidCI6InMzIiwiZXhwIjoxNzY1Mzg1NDAwfQ.a1B2c3D4-…
+                        observation: null
+                deliveredWithEvidenceRawUrls:
+                  summary: Delivered package with raw evidence URLs (Peru)
+                  description: Same delivery as above, requested with raw urls 
+                  value:
+                    version: '1.0'
+                    trackingId: SH011234567890PE
+                    clientId: '01'
+                    countryCode: PE
+                    statuses:
+                      - stage: LAST_MILE
+                        stageDescription:
+                          en: Last Mile Delivery
+                          es: Entrega de Última Milla
+                        code: 7050
+                        key: DELIVERED
+                        iconURL: https://icons.serhafen.com/delivered.png
+                        statusDescription:
+                          en: Package delivered successfully
+                          es: Paquete entregado exitosamente
+                        occuredAt:
+                          localTZ: '2025-12-05T14:30:00-05:00'
+                          UTC: '2025-12-05T19:30:00Z'
+                          city: Lima
+                          country: PE
+                        errors: []
+                        evidence:
                           - https://track.abc.pe/TRK123456
-                          - https://proof-delivery.abc.pe/signature-TRK123456.jpg
+                          - https://serhafen-delivery-proofs.s3.us-east-1.amazonaws.com/delivery-proofs/year=2025/month=12/day=05/TRK123456-1765381800.jpg?X-Amz-Signature=...
                         observation: null
                 deliveredWithoutEvidence:
                   summary: Delivered package without evidence
@@ -356,6 +392,84 @@ paths:
                       - key: EXCEPTION
                         value: 'Failed to fetch tracking data: Internal error occurred'
       security: []
+      tags:
+        - Tracking
+  /last-mile/shipments/tracking/evidence-image:
+    get:
+      operationId: getEvidenceImage
+      summary: Exchange an evidence token for a downloadable image URL
+      description: |
+        Redeems a short-lived evidence token — returned in the `evidence` field of the tracking
+        endpoint's response .
+
+        **Behavior by evidence source:**
+        - S3-stored evidence: a fresh pre-signed URL is generated at redemption time.
+
+        **Token lifetime:** Tokens expire 1 hour after the tracking response that issued them.
+        An expired or tampered token is rejected with `400 Bad Request`.
+
+        An **x-api-key** is required to access the API. Contact Serhafen Support to obtain your API key.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Evidence token returned in the tracking endpoint's `evidence` field.
+          schema:
+            type: string
+            example: eyJrIjoiZGVsaXZlcnktcHJvb2ZzL3llYXI9MjAyNS9tb250aD0xMi9kYXk9MDUvVFJLMTIzNDU2LTE3NjUzODE4MDAuanBnIiwidCI6InMzIiwiZXhwIjoxNzY1Mzg1NDAwfQ.a1B2c3D4-…
+      responses:
+        '200':
+          description: Successfully redeemed the evidence token for a downloadable image URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceImageResponse'
+              examples:
+                s3Evidence:
+                  summary: S3-stored evidence, freshly pre-signed
+                  value:
+                    url: https://serhafen-delivery-proofs.s3.us-east-1.amazonaws.com/delivery-proofs/year=2025/month=12/day=05/TRK123456-1765381800.jpg?X-Amz-Signature=...
+                directEvidence:
+                  summary: Direct partner-hosted evidence, returned as-is
+                  value:
+                    url: https://track.abc.pe/TRK123456
+        '400':
+          description: Bad Request - Missing, malformed, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsolidatedErrorResponse'
+              examples:
+                missingToken:
+                  summary: Missing token query parameter
+                  value:
+                    traceParent: ''
+                    status: BAD_REQUEST
+                    dateTime: '2026-09-10T15:22:34.456Z'
+                    errors:
+                      - key: BAD_REQUEST
+                        value: token is required
+                invalidOrExpiredToken:
+                  summary: Token is malformed, tampered with, or expired
+                  value:
+                    traceParent: ''
+                    status: BAD_REQUEST
+                    dateTime: '2026-09-10T15:22:34.456Z'
+                    errors:
+                      - key: BAD_REQUEST
+                        value: Invalid or expired evidence token
+        '401':
+          description: Unauthorized - Missing or invalid x-api-key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                statusCode: 401
+                message: Invalid API key
+                error: Unauthorized
+      security:
+        - ApiKeyAuth: []
       tags:
         - Tracking
   /customs-declaration/v0/hawb/detail/status-history:
@@ -688,7 +802,12 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: JWT token obtained from M2M authentication endpoint
-  
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication
+
   schemas:
     ConsolidatedTrackingResponse:
       type: object
@@ -826,7 +945,7 @@ components:
         evidence:
           type: array
           description: |
-            Array of evidence URLs (always present, may be empty).
+            Array of delivery evidence references (always present, may be empty).
 
             **Evidence includes:**
             - Proof of delivery signatures
@@ -838,7 +957,6 @@ components:
             An empty array means no evidence is available for this status.
           items:
             type: string
-            format: uri
           example: []
         observation:
           $ref: '#/components/schemas/ConsolidatedStatusObservation'
@@ -968,6 +1086,19 @@ components:
           items:
             $ref: '#/components/schemas/ConsolidatedError'
           minItems: 1
+    EvidenceImageResponse:
+      type: object
+      required:
+        - url
+      description: Response returned when redeeming an evidence token for a downloadable image URL
+      properties:
+        url:
+          type: string
+          format: uri
+          description: |
+            A fetchable URL for the evidence image. A freshly pre-signed URL for S3-stored evidence,
+            or the original URL as-is for direct partner-hosted evidence.
+          example: https://serhafen-delivery-proofs.s3.us-east-1.amazonaws.com/delivery-proofs/year=2025/month=12/day=05/TRK123456-1765381800.jpg?X-Amz-Signature=...
     M2MTokenRequest:
       type: object
       required:

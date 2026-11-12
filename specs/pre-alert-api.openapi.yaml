@@ -119,7 +119,8 @@ paths:
         **Chile-specific requirements:**
         - Consignee `city` field is required (communa)
         - `identificationType` should be `RUT` for Chilean nationals
-        - SII tax fields (`taxCompanyId`, `taxCompanyName`, `taxHasBeenPaid`) for customs compliance, where`taxHasBeenPaid` has possible values: `IVA_YES`, `IVA_NO`
+        - SII tax fields (`taxCompanyId`, `taxCompanyName`, `taxHasBeenPaid`) for customs compliance
+        - `taxHasBeenPaid` is **mandatory** for Chile; possible values: `IVA_YES`, `IVA_NO`, `NOREG`
         - FOB/CIF valuation breakdown supported at parcel and item level
         - `trackingId` must be unique across all parcel declarations
       parameters:
@@ -132,7 +133,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ParcelDeclareRequest'
+              $ref: '#/components/schemas/ParcelDeclareRequestChile'
             examples:
               standard_parcel:
                 summary: Standard Parcel Declaration for Chile
@@ -1127,8 +1128,8 @@ components:
           example: Importadora Chile SpA
         taxHasBeenPaid:
           type: string
-          description: Whether tax has been paid - IVA_YES or IVA_NO for Chile (example IVA_NO, IVA_YES)
-          enum: ['IVA_YES', 'IVA_NO']
+          description: "**Mandatory for Chile.** Tax (IVA) payment status of the parcel - one of IVA_YES, IVA_NO or NOREG (example IVA_NO, IVA_YES, NOREG)"
+          enum: ['IVA_YES', 'IVA_NO', 'NOREG']
           example: 'IVA_NO'
         senderInfo:
           $ref: '#/components/schemas/SenderInfo'
@@ -1145,6 +1146,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UniqueReference'
+    ParcelDeclareRequestChile:
+      description: Parcel declaration request for Chile. Same as ParcelDeclareRequest, with `taxHasBeenPaid` additionally mandatory.
+      allOf:
+        - $ref: '#/components/schemas/ParcelDeclareRequest'
+        - type: object
+          required:
+            - taxHasBeenPaid
     ParcelDeclareResponse:
       type: object
       required:

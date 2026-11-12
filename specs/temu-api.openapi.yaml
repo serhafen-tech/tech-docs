@@ -1070,7 +1070,8 @@ components:
           description: Name of the company as per SII (example Importadora Chile SpA).
         taxHasBeenPaid:
           type: string
-          description: Indicates if VAT/Taxes have been prepaid (example IVA_YES, IVA_NO). Accepted values typically include IVA_YES (Yes) or IVA_NO (No).
+          description: Indicates if VAT/Taxes have been prepaid (example IVA_YES, IVA_NO, NOREG). Accepted values are IVA_YES (Yes), IVA_NO (No) or NOREG.
+          enum: ['IVA_YES', 'IVA_NO', 'NOREG']
         hawbGrossWeight:
           description: Must be provided in Kilograms (KG) (example 0.5, 1.25). Decimals are accepted. (accepts number or string)
           oneOf:
